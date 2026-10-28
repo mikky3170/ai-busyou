@@ -1,0 +1,925 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 4.2 VOICEVOX開通版】</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-black: #0c0b0e;
+      --panel-bg: #151319;
+      --gold: #d4af37;
+      --gold-light: #ffd700;
+      --gold-dark: #8a701d;
+      --crimson: #8b0000;
+      --crimson-bright: #e61919;
+      --green-live: #28a745;
+      --border-gold: 1px solid rgba(212, 175, 55, 0.4);
+      --text-main: #f0ede6;
+      --text-sub: #b3a998;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-black);
+      background-image: 
+        radial-gradient(ellipse at 50% 0%, rgba(139, 0, 0, 0.3) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 10px);
+      color: var(--text-main);
+      font-family: 'Shippori Mincho', 'Yu Mincho', serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(180deg, #1a1520 0%, #0d0c10 100%);
+      border-bottom: 2px solid var(--gold);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(212, 175, 55, 0.2);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .commander-profile { display: flex; align-items: center; gap: 15px; }
+
+    .avatar-frame {
+      width: 64px;
+      height: 64px;
+      border: 2px solid var(--gold-light);
+      border-radius: 6px;
+      background: #08060a;
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.5), inset 0 0 12px rgba(139, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-icon { width: 48px; height: 48px; fill: var(--gold-light); }
+
+    .commander-titles { display: flex; flex-direction: column; gap: 2px; }
+
+    .official-rank {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .commander-name {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      color: #fff;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .status-badge {
+      font-size: 10.5px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(139, 0, 0, 0.6);
+      border: 1px solid var(--crimson-bright);
+      color: #ffe6e6;
+    }
+
+    .version-tag {
+      font-size: 10px;
+      background: var(--gold);
+      color: #000;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
+    .header-btns { display: flex; gap: 8px; }
+
+    .btn-header {
+      background: rgba(30, 25, 36, 0.8);
+      border: 1px solid var(--gold-dark);
+      color: var(--gold-light);
+      padding: 6px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .btn-header:hover { background: var(--gold); color: #000; }
+
+    .btn-test-voice {
+      background: rgba(139, 0, 0, 0.8);
+      border-color: var(--gold);
+      color: #fff;
+      font-weight: bold;
+    }
+    .btn-test-voice:hover { background: var(--crimson-bright); color: #fff; }
+
+    #chat-container {
+      flex: 1;
+      max-width: 920px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 12px;
+      max-width: 84%;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.nobunaga { align-self: flex-start; }
+    .msg-row.player { align-self: flex-end; flex-direction: row-reverse; }
+
+    .msg-crest {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #110e15;
+      border: 1px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .player .msg-crest { border-color: #8b0000; background: #201313; }
+
+    .msg-bubble {
+      position: relative;
+      padding: 12px 18px;
+      border-radius: 6px;
+      line-height: 1.7;
+      font-size: 14.5px;
+      letter-spacing: 0.04em;
+    }
+
+    .nobunaga .msg-bubble {
+      background: linear-gradient(145deg, #1e1925 0%, #131117 100%);
+      border: 1px solid rgba(212, 175, 55, 0.5);
+      color: #fff6e0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+    }
+    .nobunaga .msg-bubble::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: -8px;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 8px solid rgba(212, 175, 55, 0.6);
+    }
+
+    .player .msg-bubble {
+      background: linear-gradient(145deg, #2c1e13 0%, #18120c 100%);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      color: #faf5ed;
+    }
+    .player .msg-bubble::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      right: -8px;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 8px solid rgba(212, 175, 55, 0.5);
+    }
+
+    footer {
+      max-width: 920px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .simulator-container {
+      background: var(--panel-bg);
+      border: var(--border-gold);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .simulator-header {
+      padding: 8px 14px;
+      background: rgba(40, 32, 48, 0.7);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sim-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sim-current-badge {
+      font-size: 11px;
+      color: #eee;
+      background: rgba(0,0,0,0.6);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #443c33;
+    }
+
+    .simulator-body {
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      border-top: 1px solid rgba(212, 175, 55, 0.2);
+    }
+
+    .sim-field { display: flex; flex-direction: column; gap: 5px; }
+    .sim-field label { font-size: 11px; color: var(--gold); font-weight: 700; }
+
+    .sim-select, .sim-input {
+      background: #0d0c11;
+      border: 1px solid #473e2d;
+      color: #fff;
+      padding: 6px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+
+    .quick-moves { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+    .btn-quick-move {
+      background: rgba(212, 175, 55, 0.1);
+      border: 1px solid var(--gold-dark);
+      color: #e0d5be;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .btn-quick-move:hover { background: var(--gold); color: #000; }
+
+    .input-section { display: flex; gap: 8px; align-items: center; }
+
+    .input-box {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .main-input {
+      width: 100%;
+      background: #121016;
+      border: 1.5px solid var(--gold-dark);
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 14.5px;
+      font-family: inherit;
+      outline: none;
+    }
+    .main-input:focus {
+      border-color: var(--gold-light);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-mute-toggle {
+      background: #251f2b;
+      border: 1.5px solid #555;
+      color: #bbb;
+      padding: 0 14px;
+      font-family: inherit;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      min-height: 45px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .btn-mute-toggle.active-mic {
+      background: rgba(40, 167, 69, 0.2);
+      border-color: var(--green-live);
+      color: #a3ffb8;
+      box-shadow: 0 0 10px rgba(40, 167, 69, 0.4);
+    }
+    .btn-mute-toggle.muted {
+      background: rgba(139, 0, 0, 0.25);
+      border-color: var(--crimson-bright);
+      color: #ffb4b4;
+    }
+
+    .btn-action {
+      background: linear-gradient(180deg, #b02626 0%, #680d0d 100%);
+      border: 1px solid var(--gold);
+      color: #fff;
+      padding: 0 20px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      border-radius: 6px;
+      cursor: pointer;
+      min-height: 45px;
+      white-space: nowrap;
+    }
+    .btn-action:hover:not(:disabled) {
+      background: linear-gradient(180deg, #d32f2f 0%, #8b0000 100%);
+      box-shadow: 0 0 12px rgba(201, 23, 23, 0.6);
+    }
+
+    .tool-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-sub);
+      padding: 0 4px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tool-toggles { display: flex; gap: 14px; align-items: center; }
+    .tool-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+    .tool-toggle input { accent-color: var(--gold); }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal-card {
+      background: var(--panel-bg); border: 2px solid var(--gold); border-radius: 8px; padding: 22px; max-width: 580px; width: 100%;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--gold-light); margin-bottom: 12px; }
+    .modal-field { margin-bottom: 12px; }
+    .modal-field label { display: block; font-size: 11px; color: var(--gold); margin-bottom: 5px; font-weight: bold; }
+    .modal-input, .modal-select {
+      width: 100%; background: #09080c; border: 1px solid var(--gold-dark); padding: 10px 12px; color: #fff; font-size: 13px; border-radius: 4px; outline: none; font-family: inherit;
+    }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="commander-profile">
+      <div class="avatar-frame">
+        <svg class="avatar-icon" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" stroke="#d4af37" stroke-width="2.5" fill="none" />
+          <circle cx="50" cy="50" r="14" fill="#8b0000" stroke="#ffd700" stroke-width="2" />
+          <circle cx="50" cy="22" r="11" fill="none" stroke="#d4af37" stroke-width="2" />
+          <circle cx="77" cy="41" r="11" fill="none" stroke="#d4af37" stroke-width="2" />
+          <circle cx="67" cy="72" r="11" fill="none" stroke="#d4af37" stroke-width="2" />
+          <circle cx="33" cy="72" r="11" fill="none" stroke="#d4af37" stroke-width="2" />
+          <circle cx="23" cy="41" r="11" fill="none" stroke="#d4af37" stroke-width="2" />
+        </svg>
+      </div>
+      <div class="commander-titles">
+        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 4.2</span></span>
+        <div class="commander-name">
+          織田信長
+          <span class="status-badge" id="voice-status-badge">VOICEVOX 青山龍星 連動</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-btns">
+      <button class="btn-header btn-test-voice" onclick="testDirectVoicevox()">🔊 信長ボイス試聴</button>
+      <button class="btn-header" onclick="openKeyModal()">⚙ 設定</button>
+    </div>
+  </header>
+
+  <main id="chat-container">
+    <div class="msg-row nobunaga">
+      <div class="msg-crest">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gold)"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/></svg>
+      </div>
+      <div class="msg-bubble">
+        来たな、余が生涯の好敵手よ！天下布武の道にあって、うぬと盤を挟むひとときだけは退屈せぬわ。出し惜しみは無用、全力でこの余を唸らせてみよ！
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="simulator-container">
+      <div class="simulator-header" onclick="toggleSimulator()">
+        <div class="sim-title">
+          <span>♟ 盤上戦況コンテキスト注入</span>
+          <span id="sim-indicator" style="font-size:10px; color:var(--gold);">[開く ▾]</span>
+        </div>
+        <div class="sim-current-badge" id="sim-summary">手番: 好敵手 | 互角 | 王手無</div>
+      </div>
+      <div class="simulator-body" id="simulator-body" style="display: none;">
+        <div class="sim-field">
+          <label>手番</label>
+          <select id="sim-turn" class="sim-select" onchange="updateSimSummary()">
+            <option value="好敵手（うぬ・プレイヤー）手番">好敵手（うぬ）手番</option>
+            <option value="信長手番">信長手番</option>
+          </select>
+        </div>
+        <div class="sim-field">
+          <label>形勢推移</label>
+          <select id="sim-eval" class="sim-select" onchange="updateSimSummary()">
+            <option value="互角">互角（息詰まる鍔迫り合い）</option>
+            <option value="信長有利">信長有利（余が攻勢）</option>
+            <option value="信長劣勢">信長劣勢（うぬが猛攻）</option>
+            <option value="信長勝勢">信長勝勢（詰めろの気配）</option>
+            <option value="信長本陣危急">信長本陣危急（玉頭炎上）</option>
+          </select>
+        </div>
+        <div class="sim-field">
+          <label>王手状況</label>
+          <select id="sim-check" class="sim-select" onchange="updateSimSummary()">
+            <option value="王手なし">王手なし</option>
+            <option value="好敵手から信長へ王手">うぬから余へ王手！</option>
+            <option value="信長から好敵手へ王手">余からうぬへ王手！</option>
+          </select>
+        </div>
+        <div class="sim-field">
+          <label>直前の指し手</label>
+          <input type="text" id="sim-lastmove" class="sim-input" value="７六歩" oninput="updateSimSummary()">
+          <div class="quick-moves">
+            <span class="btn-quick-move" onclick="setQuickMove('７六歩')">７六歩</span>
+            <span class="btn-quick-move" onclick="setQuickMove('２六歩')">２六歩</span>
+            <span class="btn-quick-move" onclick="setQuickMove('８八飛成')">８八飛成</span>
+            <span class="btn-quick-move" onclick="setQuickMove('同金')">同金</span>
+            <span class="btn-quick-move" onclick="setQuickMove('５二玉')">５二玉</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-section">
+      <div class="input-box">
+        <input type="text" id="user-input" class="main-input" placeholder="信長へ進言、または左のマイクを入れて肉声で語りかける…" onkeydown="handleKeyDown(event)">
+      </div>
+
+      <button class="btn-mute-toggle muted" id="mute-toggle-btn" onclick="toggleMicMute()">
+        <span id="mute-icon">🔴</span>
+        <span id="mute-label">マイク消音中</span>
+      </button>
+
+      <button class="btn-action" id="send-btn" onclick="sendMessage()">一手返す</button>
+    </div>
+
+    <div class="tool-bar">
+      <div class="tool-toggles">
+        <label class="tool-toggle">
+          <input type="checkbox" id="voice-toggle" checked>
+          <span>信長の肉声（VOICEVOX 青山龍星）</span>
+        </label>
+        <label class="tool-toggle">
+          <input type="checkbox" id="auto-send-toggle" checked>
+          <span>音声認識完了時に自動送信</span>
+        </label>
+      </div>
+      <span id="mic-status" style="color:var(--gold-light);">マイク: 消音（ボタンを押すと聞き取ります）</span>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="api-modal">
+    <div class="modal-card">
+      <div class="modal-title">⚙ 武将対話 通信設定</div>
+      
+      <div class="modal-field">
+        <label>Google AI Studio APIキー</label>
+        <input type="password" id="api-key-input" class="modal-input" placeholder="AIzaSy...">
+      </div>
+
+      <div class="modal-field">
+        <label>Gemini モデル</label>
+        <select id="model-select" class="modal-select">
+          <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite（超高速・推奨）</option>
+          <option value="gemini-3.5-flash">gemini-3.5-flash（標準バランス）</option>
+        </select>
+      </div>
+
+      <div class="modal-field">
+        <label>VOICEVOX 接続先（IPv4固定推奨）</label>
+        <input type="text" id="voicevox-url-input" class="modal-input" value="http://127.0.0.1:50021">
+      </div>
+
+      <div class="modal-field">
+        <label>信長 VOICEVOX 話者ID（青山龍星: 13 / 玄野武宏: 11）</label>
+        <input type="number" id="voicevox-speaker-input" class="modal-input" value="13">
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-header" style="background:#222;" onclick="closeKeyModal()">閉じる</button>
+        <button class="btn-action" style="padding:4px 18px; min-height:auto;" onclick="saveSettings()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let apiKey = localStorage.getItem("shogi_api_key") || "";
+    let selectedModel = localStorage.getItem("shogi_selected_model") || "gemini-3.5-flash-lite";
+    // デフォルトを確実に繋がる IPv4 (127.0.0.1) に変更！
+    let voicevoxUrl = localStorage.getItem("shogi_voicevox_url") || "http://127.0.0.1:50021";
+    let speakerId = parseInt(localStorage.getItem("shogi_speaker_id") || "13", 10);
+
+    let isSimulatorOpen = false;
+    let chatHistory = [];
+    let recognition = null;
+    let isMicMuted = true;
+    let isRecognitionRunning = false;
+
+    const globalAudio = new Audio();
+
+    const SYSTEM_INSTRUCTION = `
+あなたは戦国将棋ゲーム「将棋王」に登場する【AI織田信長】である。
+対話相手であるプレイヤーは、家臣でも天下の愚民でもなく、信長が生涯で唯一盤上と知略を競い合うことを認めた【無二の好敵手（ライバル）】である。
+
+【最重要ルール】
+・1回の返答は【60〜100文字程度（2〜3文以内）】に厳格に収めよ。長文は絶対に禁ずる。
+・敬語、丁寧語（です・ます）は厳禁。
+・現代カタカナ語（AI、チャンス、リスク、システム等）は厳禁。「絡繰」「好機」「神算」「盤上」等に言い換えよ。
+
+【対・好敵手（ライバル）としての態度】
+・一人称：「余（よ）」または「信長」
+・二人称：「うぬ」または「貴様」
+・うぬの実力を深く認めているからこそ、傲慢かつ獰猛に挑発し、手加減を一切嫌う。
+・対等な強者同士が盤上で命を削り合う好敵手の熱量を込めて返答せよ。
+
+【史実・性格アンカー】
+・天下布武、安土城の覇王。
+・電光石火の決断を愛し、ためらいや温い手を激しく嘲笑・一喝する。
+・明智光秀には常に猜疑と警戒を抱いている。
+
+【戦況盤面への反応】
+・入力冒頭の [盤面戦況: 手番, 形勢, 王手, 直前の手] を直ちに把握し、好敵手の指し手や盤面の緊迫感に即応した覇王の熱い一言を放て。
+`;
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("api-key-input").value = apiKey;
+      document.getElementById("model-select").value = selectedModel;
+      document.getElementById("voicevox-url-input").value = voicevoxUrl;
+      document.getElementById("voicevox-speaker-input").value = speakerId;
+
+      updateSimSummary();
+      initSpeechRecognition();
+
+      if (!apiKey) {
+        setTimeout(openKeyModal, 400);
+      }
+    });
+
+    // --- 🔊 VOICEVOX 直通テスト（多段フォールバック接続） ---
+    async function testDirectVoicevox() {
+      unlockAudio();
+
+      const testPhrase = "余が織田信長である！天下布武の盤上、うぬと共に見届けようぞ！";
+      
+      // 127.0.0.1 と localhost の両方を順に自動試行
+      const candidateUrls = [
+        voicevoxUrl,
+        "http://127.0.0.1:50021",
+        "http://localhost:50021"
+      ];
+
+      let success = false;
+      let lastErr = "";
+
+      for (const url of candidateUrls) {
+        try {
+          await playVoicevoxWithUrl(testPhrase, url, speakerId);
+          success = true;
+          voicevoxUrl = url;
+          localStorage.setItem("shogi_voicevox_url", url);
+          document.getElementById("voicevox-url-input").value = url;
+          break;
+        } catch (e) {
+          lastErr = e.message;
+        }
+      }
+
+      if (!success) {
+        alert(
+          `【VOICEVOX接続失敗の診断】\n\n` +
+          `エラー: ${lastErr}\n\n` +
+          `【原因と解決法】\n` +
+          `ブラウザがローカルファイル(file://)からの通信を遮断しています。\n` +
+          `Chromeのコンソール(F12)を開いて「Console」タブの赤文字をご確認いただくか、VS Codeの「Live Server」等で開くと一発で鳴ります。`
+        );
+      }
+    }
+
+    function unlockAudio() {
+      globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+      globalAudio.play().catch(() => {});
+    }
+
+    // --- 音声認識 ---
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        document.getElementById("mute-toggle-btn").style.display = "none";
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = "ja-JP";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        isRecognitionRunning = true;
+        updateMicUI();
+      };
+
+      recognition.onresult = (event) => {
+        if (isMicMuted) return;
+
+        let interimText = "";
+        let finalText = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const trans = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalText += trans;
+          } else {
+            interimText += trans;
+          }
+        }
+
+        const inputEl = document.getElementById("user-input");
+        if (finalText) {
+          inputEl.value = finalText;
+          if (document.getElementById("auto-send-toggle").checked && finalText.trim()) {
+            sendMessage();
+          }
+        } else if (interimText) {
+          inputEl.value = interimText;
+        }
+      };
+
+      recognition.onerror = (e) => console.warn(e.error);
+
+      recognition.onend = () => {
+        isRecognitionRunning = false;
+        if (!isMicMuted) {
+          try { recognition.start(); } catch (e) {}
+        }
+        updateMicUI();
+      };
+    }
+
+    function toggleMicMute() {
+      if (!recognition) return;
+      unlockAudio();
+      isMicMuted = !isMicMuted;
+      if (!isMicMuted && !isRecognitionRunning) {
+        try { recognition.start(); } catch (e) {}
+      }
+      updateMicUI();
+    }
+
+    function updateMicUI() {
+      const btn = document.getElementById("mute-toggle-btn");
+      const icon = document.getElementById("mute-icon");
+      const label = document.getElementById("mute-label");
+      const status = document.getElementById("mic-status");
+
+      if (isMicMuted) {
+        btn.className = "btn-mute-toggle muted";
+        icon.textContent = "🔴";
+        label.textContent = "マイク消音中";
+        status.textContent = "マイク: 消音（ボタンを押すと聞き取ります）";
+      } else {
+        btn.className = "btn-mute-toggle active-mic";
+        icon.textContent = "🎙🟢";
+        label.textContent = "声を聴いている…";
+        status.textContent = "信長公がうぬの言霊を待っている…（話し終えると自動送信）";
+      }
+    }
+
+    // --- メッセージ送受信 ---
+    function handleKeyDown(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    async function sendMessage() {
+      unlockAudio();
+      
+      const inputEl = document.getElementById("user-input");
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      if (!apiKey) {
+        alert("APIキーが未設定です。");
+        openKeyModal();
+        return;
+      }
+
+      appendMessage("player", text);
+      inputEl.value = "";
+      setLoading(true);
+
+      const ctxPrompt = getContextPrompt();
+      const combinedInput = `${ctxPrompt}\n${text}`;
+      chatHistory.push({ role: "user", text: combinedInput });
+
+      try {
+        const reply = await requestGemini(chatHistory);
+        appendMessage("nobunaga", reply);
+        chatHistory.push({ role: "model", text: reply });
+        if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
+
+        if (document.getElementById("voice-toggle").checked) {
+          await playVoicevox(reply);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // --- Gemini 呼び出し ---
+    async function requestGemini(history) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+      const contents = history.map(h => ({
+        role: h.role === "user" ? "user" : "model",
+        parts: [{ text: h.text }]
+      }));
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+          contents: contents,
+          generationConfig: { temperature: 0.85, maxOutputTokens: 160 }
+        })
+      });
+
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は睨みつけている）";
+    }
+
+    // --- 🎙 VOICEVOX 再生関数 ---
+    async function playVoicevox(text) {
+      try {
+        await playVoicevoxWithUrl(text, voicevoxUrl, speakerId);
+        document.getElementById("voice-status-badge").textContent = "青山龍星 発声成功";
+        document.getElementById("voice-status-badge").style.background = "#005a10";
+      } catch (e) {
+        console.warn("VOICEVOX再生失敗のため機械声にフォールバック:", e);
+        document.getElementById("voice-status-badge").textContent = "VOICEVOX未接続(機械声代替)";
+        document.getElementById("voice-status-badge").style.background = "#700";
+        fallbackBrowserTTS(text);
+      }
+    }
+
+    async function playVoicevoxWithUrl(text, baseUrl, spId) {
+      const cleanText = text.replace(/[\n\r]/g, " ").replace(/[「」『』]/g, "");
+
+      // 1. クエリ作成
+      const queryUrl = `${baseUrl}/audio_query?text=${encodeURIComponent(cleanText)}&speaker=${spId}`;
+      const queryRes = await fetch(queryUrl, {
+        method: "POST",
+        headers: { "accept": "application/json" }
+      });
+
+      if (!queryRes.ok) throw new Error(`HTTP ${queryRes.status}`);
+      const queryJson = await queryRes.json();
+
+      queryJson.speedScale = 1.05;
+      queryJson.pitchScale = -0.05;
+
+      // 2. 音声合成
+      const synthUrl = `${baseUrl}/synthesis?speaker=${spId}`;
+      const synthRes = await fetch(synthUrl, {
+        method: "POST",
+        headers: {
+          "accept": "audio/wav",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(queryJson)
+      });
+
+      if (!synthRes.ok) throw new Error(`HTTP ${synthRes.status}`);
+
+      const audioBlob = await synthRes.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      globalAudio.src = audioUrl;
+      await globalAudio.play();
+    }
+
+    function fallbackBrowserTTS(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ja-JP";
+      utterance.pitch = 0.72;
+      utterance.rate = 1.05;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // --- UI補助 ---
+    function toggleSimulator() {
+      isSimulatorOpen = !isSimulatorOpen;
+      document.getElementById("simulator-body").style.display = isSimulatorOpen ? "grid" : "none";
+      document.getElementById("sim-indicator").textContent = isSimulatorOpen ? "[閉じる ▴]" : "[開く ▾]";
+    }
+    function setQuickMove(move) {
+      document.getElementById("sim-lastmove").value = move;
+      updateSimSummary();
+    }
+    function updateSimSummary() {
+      const turn = document.getElementById("sim-turn").value.includes("信長") ? "信長手番" : "うぬ手番";
+      const evalVal = document.getElementById("sim-eval").value;
+      const check = document.getElementById("sim-check").value;
+      const move = document.getElementById("sim-lastmove").value || "なし";
+      document.getElementById("sim-summary").textContent = `${turn} | ${evalVal} | ${check} | 直前:${move}`;
+    }
+    function getContextPrompt() {
+      return `[盤面戦況: 手番=${document.getElementById("sim-turn").value}, 形勢=${document.getElementById("sim-eval").value}, 王手状況=${document.getElementById("sim-check").value}, 直前の手=${document.getElementById("sim-lastmove").value}]`;
+    }
+
+    function openKeyModal() { document.getElementById("api-modal").style.display = "flex"; }
+    function closeKeyModal() { document.getElementById("api-modal").style.display = "none"; }
+    function saveSettings() {
+      apiKey = document.getElementById("api-key-input").value.trim();
+      selectedModel = document.getElementById("model-select").value;
+      voicevoxUrl = document.getElementById("voicevox-url-input").value.trim() || "http://127.0.0.1:50021";
+      speakerId = parseInt(document.getElementById("voicevox-speaker-input").value, 10) || 13;
+      localStorage.setItem("shogi_api_key", apiKey);
+      localStorage.setItem("shogi_selected_model", selectedModel);
+      localStorage.setItem("shogi_voicevox_url", voicevoxUrl);
+      localStorage.setItem("shogi_speaker_id", speakerId.toString());
+      alert("設定を保存しました。");
+      closeKeyModal();
+    }
+
+    function appendMessage(sender, text) {
+      const container = document.getElementById("chat-container");
+      const row = document.createElement("div");
+      row.className = `msg-row ${sender}`;
+      row.innerHTML = sender === "nobunaga"
+        ? `<div class="msg-crest"><svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gold)"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/></svg></div><div class="msg-bubble">${escapeHtml(text)}</div>`
+        : `<div class="msg-crest"><svg viewBox="0 0 24 24" width="18" height="18" fill="var(--gold-light)"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2"/></svg></div><div class="msg-bubble">${escapeHtml(text)}</div>`;
+      container.appendChild(row);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function setLoading(isLoading) {
+      document.getElementById("send-btn").disabled = isLoading;
+      document.getElementById("user-input").disabled = isLoading;
+      const loadingId = "nobunaga-loading";
+      const existing = document.getElementById(loadingId);
+      if (isLoading && !existing) {
+        const row = document.createElement("div");
+        row.id = loadingId;
+        row.className = "msg-row nobunaga";
+        row.innerHTML = `<div class="msg-crest"><svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gold)"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/></svg></div><div class="msg-bubble" style="opacity:0.8;">好敵手の一手を見定め、思案中ぞ……</div>`;
+        document.getElementById("chat-container").appendChild(row);
+        document.getElementById("chat-container").scrollTop = document.getElementById("chat-container").scrollHeight;
+      } else if (!isLoading && existing) {
+        existing.remove();
+        document.getElementById("user-input").focus();
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
+
