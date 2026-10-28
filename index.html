@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.4 AI Studio同等録音版】</title>
+  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.5 覇王音声調整版】</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;900&display=swap" rel="stylesheet">
@@ -17,7 +17,6 @@
       --gold-dark: #8a701d;
       --crimson: #8b0000;
       --crimson-bright: #e61919;
-      --green-live: #28a745;
       --border-gold: 1px solid rgba(212, 175, 55, 0.4);
       --text-main: #f0ede6;
       --text-sub: #b3a998;
@@ -28,8 +27,8 @@
     body {
       background-color: var(--bg-black);
       background-image: 
-        radial-gradient(ellipse at 50% 0%, rgba(139, 0, 0, 0.3) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 100%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 0%, rgba(139, 0, 0, 0.35) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(212, 175, 55, 0.12) 0%, transparent 50%),
         repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 10px);
       color: var(--text-main);
       font-family: 'Shippori Mincho', 'Yu Mincho', serif;
@@ -231,7 +230,7 @@
       gap: 10px;
     }
 
-    .simulator-container {
+    .simulator-container, .voice-custom-container {
       background: var(--panel-bg);
       border: var(--border-gold);
       border-radius: 6px;
@@ -266,10 +265,10 @@
       border: 1px solid #443c33;
     }
 
-    .simulator-body {
+    .simulator-body, .voice-custom-body {
       padding: 12px 14px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
       border-top: 1px solid rgba(212, 175, 55, 0.2);
     }
@@ -285,6 +284,12 @@
       font-size: 12px;
       border-radius: 4px;
       font-family: inherit;
+    }
+
+    .voice-slider-val {
+      font-size: 11px;
+      color: var(--gold-light);
+      margin-left: 6px;
     }
 
     .quick-moves { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
@@ -324,7 +329,6 @@
       box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     }
 
-    /* 🎙 AI Studio同等 録音ボタン */
     .btn-mic-toggle {
       background: #251f2b;
       border: 1.5px solid var(--gold-dark);
@@ -418,7 +422,7 @@
     .mic-status-text {
       color: var(--gold-light);
       font-size: 11px;
-      max-width: 280px;
+      max-width: 260px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -456,7 +460,7 @@
         </svg>
       </div>
       <div class="commander-titles">
-        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.4 AI Studio同等</span></span>
+        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.5 覇王音響</span></span>
         <div class="commander-name">
           織田信長
           <span class="status-badge" id="voice-status-badge">声と言葉・完全同期稼働</span>
@@ -480,6 +484,40 @@
   </main>
 
   <footer>
+    <!-- 🎛 信長・覇王声響エフェクト調整盤 -->
+    <div class="voice-custom-container">
+      <div class="simulator-header" onclick="toggleVoiceCustom()">
+        <div class="sim-title">
+          <span>🔊 信長肉声アレンジ・音響設定</span>
+          <span id="voice-custom-indicator" style="font-size:10px; color:var(--gold);">[開く ▾]</span>
+        </div>
+        <div class="sim-current-badge" id="voice-custom-summary">Charon (ドス低音) | 重低音+8dB | 速度0.92x</div>
+      </div>
+      <div class="voice-custom-body" id="voice-custom-body" style="display: none;">
+        <div class="sim-field">
+          <label>Google音声プリセット</label>
+          <select id="voice-preset-select" class="sim-select" onchange="updateVoiceSettingsSummary()">
+            <option value="Charon" selected>Charon（最も低く重厚・推奨）</option>
+            <option value="Fenrir">Fenrir（冷徹・太い男性声）</option>
+            <option value="Puck">Puck（軽快・若年武将風）</option>
+          </select>
+        </div>
+        <div class="sim-field">
+          <label>重低音ブースト (胴鳴り): <span id="bass-val" class="voice-slider-val">+8 dB</span></label>
+          <input type="range" id="voice-bass-gain" min="0" max="15" step="1" value="8" oninput="updateVoiceSettingsSummary()">
+        </div>
+        <div class="sim-field">
+          <label>ドス・威圧感 (倍音歪み): <span id="drive-val" class="voice-slider-val">微小 (覇気)</span></label>
+          <input type="range" id="voice-drive" min="0" max="30" step="1" value="12" oninput="updateVoiceSettingsSummary()">
+        </div>
+        <div class="sim-field">
+          <label>声の重厚感・話速: <span id="speed-val" class="voice-slider-val">0.92x (威厳)</span></label>
+          <input type="range" id="voice-speed" min="0.80" max="1.10" step="0.02" value="0.92" oninput="updateVoiceSettingsSummary()">
+        </div>
+      </div>
+    </div>
+
+    <!-- 盤面シミュレータ -->
     <div class="simulator-container">
       <div class="simulator-header" onclick="toggleSimulator()">
         <div class="sim-title">
@@ -534,7 +572,6 @@
         <input type="text" id="user-input" class="main-input" placeholder="信長へ進言、または右のマイクを押して話しかける…" onkeydown="handleKeyDown(event)">
       </div>
 
-      <!-- 🎙 押して話す録音ボタン -->
       <button class="btn-mic-toggle" id="mic-toggle-btn" onclick="toggleRecordAudio()">
         <span id="mic-icon">🎙</span>
         <span id="mic-label">声で話す</span>
@@ -547,11 +584,10 @@
       <div class="tool-toggles">
         <label class="tool-toggle">
           <input type="checkbox" id="voice-toggle" checked>
-          <span>信長の肉声（Google 肉声合成）</span>
+          <span>信長の肉声（覇王音響エフェクト稼働中）</span>
         </label>
       </div>
 
-      <!-- リアルタイム音量メーター -->
       <div class="mic-live-box">
         <span>マイク音量:</span>
         <div class="volume-meter-track">
@@ -580,7 +616,7 @@
 
   <script>
     let apiKey = localStorage.getItem("shogi_api_key") || "";
-    const TEXT_MODEL = "gemini-3.5-flash-lite";
+    const TEXT_MODEL = "gemini-2.5-flash"; // 文字起こしおよび思考用
     const CANDIDATE_VOICE_MODELS = [
       "gemini-2.5-flash-preview-tts",
       "gemini-3.8-flash-tts",
@@ -588,15 +624,19 @@
     ];
 
     let isSimulatorOpen = false;
+    let isVoiceCustomOpen = false;
     let chatHistory = [];
     
-    // --- Google AI Studio同等：生録音エンジン（MediaRecorder） ---
+    // 生録音エンジン
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
     let activeMicStream = null;
     let meterAudioCtx = null;
     let meterAnimId = null;
+
+    // 武将オーディオエフェクト再生用コンテキスト
+    let playbackAudioCtx = null;
 
     const SYSTEM_INSTRUCTION = `
 あなたは戦国将棋ゲーム「将棋王」に登場する【AI織田信長】である。
@@ -625,19 +665,39 @@
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("api-key-input").value = apiKey;
       updateSimSummary();
+      updateVoiceSettingsSummary();
 
       if (!apiKey) {
         setTimeout(openKeyModal, 400);
       }
     });
 
-    // --- 🎙 Google AI Studioと同じ生録音トグル ---
+    // --- 音声アレンジ設定のUI制御 ---
+    function toggleVoiceCustom() {
+      isVoiceCustomOpen = !isVoiceCustomOpen;
+      document.getElementById("voice-custom-body").style.display = isVoiceCustomOpen ? "grid" : "none";
+      document.getElementById("voice-custom-indicator").textContent = isVoiceCustomOpen ? "[閉じる ▴]" : "[開く ▾]";
+    }
+
+    function updateVoiceSettingsSummary() {
+      const preset = document.getElementById("voice-preset-select").value;
+      const bass = document.getElementById("voice-bass-gain").value;
+      const drive = document.getElementById("voice-drive").value;
+      const speed = parseFloat(document.getElementById("voice-speed").value).toFixed(2);
+
+      document.getElementById("bass-val").textContent = `+${bass} dB`;
+      document.getElementById("drive-val").textContent = drive > 0 ? (drive > 15 ? "強烈 (激昂)" : "適正 (覇気)") : "オフ";
+      document.getElementById("speed-val").textContent = `${speed}x (${speed < 0.95 ? "重厚" : "通常"})`;
+
+      document.getElementById("voice-custom-summary").textContent = 
+        `${preset} | 重低音+${bass}dB | 歪み:${drive} | 速度${speed}x`;
+    }
+
+    // --- 🎙 録音エンジン ---
     async function toggleRecordAudio() {
       if (isRecording) {
-        // 録音停止して送信
         stopRecordingAndSend();
       } else {
-        // 録音開始
         await startRecording();
       }
     }
@@ -645,10 +705,8 @@
     async function startRecording() {
       try {
         audioChunks = [];
-        // Google AI Studioが使っている本物のマイクストリームを直接取得！
         activeMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        // ブラウザがサポートする高音質フォーマットを選択
         let mimeType = 'audio/webm';
         if (!MediaRecorder.isTypeSupported('audio/webm')) {
           mimeType = 'audio/mp4';
@@ -687,7 +745,7 @@
       stopVolumeMeter();
     }
 
-    // --- 🎚 リアルタイム音量メーター（声に合わせて確実にバーが跳ねる！） ---
+    // --- 音量メーター ---
     function startVolumeMeter(stream) {
       try {
         if (!meterAudioCtx) {
@@ -736,7 +794,7 @@
       }
     }
 
-    // --- 録音した生音声をGeminiに渡してテキスト化＆送信 ---
+    // --- 音声入力文字起こし ---
     async function processVoiceInput(audioBlob) {
       if (!apiKey) {
         alert("APIキーを設定してください。");
@@ -747,14 +805,12 @@
       setLoading(true, "うぬの肉声（言霊）を聞き取っておる……");
 
       try {
-        // BlobをBase64に変換
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
           const base64Data = reader.result.split(',')[1];
           const mimeType = audioBlob.type.split(';')[0];
 
-          // Gemini 3.5 Flash に音声を直接渡して高精度文字起こし
           const transcribeUrl = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`;
           const payload = {
             contents: [{
@@ -777,7 +833,6 @@
           if (transcript) {
             updateMicMonitor(`聞き取り成功: "${transcript}"`);
             setLoading(false);
-            // チャット欄に反映して自動送信！
             document.getElementById("user-input").value = transcript;
             sendMessage();
           } else {
@@ -811,7 +866,7 @@
       }
     }
 
-    // --- メッセージ送受信（完全同期エンジン） ---
+    // --- メッセージ送信 ---
     function handleKeyDown(e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -837,11 +892,9 @@
       const combinedInput = `${ctxPrompt}\n${text}`;
       chatHistory.push({ role: "user", text: combinedInput });
 
-      // 【演出1】思案中
       setLoading(true, "好敵手の一手を見定め、思案中ぞ……");
 
       try {
-        // 1. テキスト考案
         const replyText = await requestGeminiText(chatHistory);
 
         chatHistory.push({ role: "model", text: replyText });
@@ -850,22 +903,19 @@
         const needVoice = document.getElementById("voice-toggle").checked;
 
         if (needVoice) {
-          // 【演出2】音声生成中
-          setLoading(true, "信長、発声の気配……（言霊を凝縮中）");
+          setLoading(true, "信長、発声の気配……（覇王の言霊を凝縮中）");
 
-          // 2. 音声バイナリを取得（生PCMをブラウザ再生可能なWAVヘッダー付きに完全合成！）
           const audioBuffer = await fetchGoogleVoiceWavBuffer(replyText);
 
-          // 3. 【完全同期】声の再生開始と同時にセリフの吹き出しを表示！
           setLoading(false);
           appendMessage("nobunaga", replyText);
 
           if (audioBuffer) {
-            playDecodedAudio(audioBuffer);
-            document.getElementById("voice-status-badge").textContent = "Google 肉声発声成功";
+            await playWarlordAudioWithDSP(audioBuffer);
+            document.getElementById("voice-status-badge").textContent = "覇王ボイス再生成功";
             document.getElementById("voice-status-badge").style.background = "#005a10";
           } else {
-            document.getElementById("voice-status-badge").textContent = "機械声代替中";
+            document.getElementById("voice-status-badge").textContent = "代替音声";
             document.getElementById("voice-status-badge").style.background = "#700";
             fallbackBrowserTTS(replyText);
           }
@@ -880,7 +930,6 @@
       }
     }
 
-    // --- Gemini テキスト思考 ---
     async function requestGeminiText(history) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`;
       const contents = history.map(h => ({
@@ -899,24 +948,29 @@
       });
 
       const data = await res.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は睨みつけている）";
+      return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は不敵に笑う）";
     }
 
-    // --- 🎙 生PCM→WAV自動合成付き Google 肉声取得 ---
+    // --- 🎙 覇王TTS取得（Charon ＆ 覇王プロンプト） ---
     async function fetchGoogleVoiceWavBuffer(text) {
+      const selectedVoiceName = document.getElementById("voice-preset-select").value || "Charon";
+
+      // 信長らしい威厳・野太さ・傲岸不遜な熱量を引き出す音声指示
+      const warlordPrompt = `戦国覇王・織田信長として、腹の底から響く野太く重厚な低音で、威圧感と不敵な笑みを込めて読み上げよ：「${text}」`;
+
       for (const model of CANDIDATE_VOICE_MODELS) {
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
           const payload = {
             contents: [{
-              parts: [{ text: `重厚で威厳のある武将の低音で読み上げよ：「${text}」` }]
+              parts: [{ text: warlordPrompt }]
             }],
             generationConfig: {
               responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
-                    voiceName: "Fenrir" // 威厳ある低音ボイス
+                    voiceName: selectedVoiceName
                   }
                 }
               }
@@ -959,7 +1013,6 @@
       return null;
     }
 
-    // --- 生PCMデータにWAVヘッダーを付与する変換器 ---
     function addWavHeader(pcmData, sampleRate = 24000) {
       const numChannels = 1;
       const bitsPerSample = 16;
@@ -993,11 +1046,74 @@
       return buffer;
     }
 
-    function playDecodedAudio(arrayBuffer) {
-      const blob = new Blob([arrayBuffer], { type: "audio/wav" });
-      const audioUrl = URL.createObjectURL(blob);
-      const audio = new Audio(audioUrl);
-      audio.play().catch(e => console.warn(e));
+    // --- 🎛 Web Audio API：覇王ボイス・リアルタイムDSPプロセッサー ---
+    async function playWarlordAudioWithDSP(arrayBuffer) {
+      if (!playbackAudioCtx) {
+        playbackAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (playbackAudioCtx.state === 'suspended') {
+        await playbackAudioCtx.resume();
+      }
+
+      // WAVバイナリをデコード
+      const audioBuffer = await playbackAudioCtx.decodeAudioData(arrayBuffer.slice(0));
+
+      const source = playbackAudioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+
+      // 1. ピッチ＆話速（速度を少し落とすことで自然にピッチが下がり、威風堂々たる重厚感）
+      const speedVal = parseFloat(document.getElementById("voice-speed").value) || 0.92;
+      source.playbackRate.value = speedVal;
+
+      // 2. 超低音イコライザー（胸郭の唸り・胴鳴りブースト）
+      const bassGainVal = parseFloat(document.getElementById("voice-bass-gain").value) || 8;
+      const bassFilter = playbackAudioCtx.createBiquadFilter();
+      bassFilter.type = "lowshelf";
+      bassFilter.frequency.value = 180; // 180Hz以下の低音域
+      bassFilter.gain.value = bassGainVal; // +8dB
+
+      // 3. ドス・覇気（ソフトサチュレーション / 喉の唸り）
+      const driveAmount = parseFloat(document.getElementById("voice-drive").value) || 12;
+      const shaper = playbackAudioCtx.createWaveShaper();
+      shaper.curve = makeDistortionCurve(driveAmount);
+      shaper.oversample = '2x';
+
+      // 4. 高域の現代的デジタル感を丸める（落ち着いた肉厚な武将トーン）
+      const highCut = playbackAudioCtx.createBiquadFilter();
+      highCut.type = "highshelf";
+      highCut.frequency.value = 5000;
+      highCut.gain.value = -3.5;
+
+      // 5. 出力マスターゲイン
+      const masterGain = playbackAudioCtx.createGain();
+      masterGain.gain.value = 1.15; // 迫力を増すため少し増幅
+
+      // エフェクトチェーンの接続:
+      // Source -> Bass Boost -> Shaper (ドス) -> High Cut -> Master Gain -> Destination
+      source.connect(bassFilter);
+      bassFilter.connect(shaper);
+      shaper.connect(highCut);
+      highCut.connect(masterGain);
+      masterGain.connect(playbackAudioCtx.destination);
+
+      source.start(0);
+    }
+
+    // わずかな倍音の歪み（覇気・濁声）を作るカーブ関数
+    function makeDistortionCurve(amount) {
+      const k = typeof amount === 'number' ? amount : 10;
+      const n_samples = 44100;
+      const curve = new Float32Array(n_samples);
+      const deg = Math.PI / 180;
+      for (let i = 0; i < n_samples; ++i) {
+        const x = (i * 2) / n_samples - 1;
+        if (k === 0) {
+          curve[i] = x;
+        } else {
+          curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+        }
+      }
+      return curve;
     }
 
     function fallbackBrowserTTS(text) {
@@ -1005,12 +1121,12 @@
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "ja-JP";
-      utterance.pitch = 0.72;
-      utterance.rate = 1.05;
+      utterance.pitch = 0.65; // 最低音
+      utterance.rate = 0.95;  // 落ち着いた速度
       window.speechSynthesis.speak(utterance);
     }
 
-    // --- UI・ローディング演出 ---
+    // --- UI演出 ---
     function setLoading(isLoading, statusText = "") {
       document.getElementById("send-btn").disabled = isLoading;
       document.getElementById("user-input").disabled = isLoading;
