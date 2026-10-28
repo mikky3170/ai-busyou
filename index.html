@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 4.2 VOICEVOX開通版】</title>
+  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.0 肉声直結版】</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;900&display=swap" rel="stylesheet">
@@ -119,14 +119,6 @@
       transition: all 0.2s;
     }
     .btn-header:hover { background: var(--gold); color: #000; }
-
-    .btn-test-voice {
-      background: rgba(139, 0, 0, 0.8);
-      border-color: var(--gold);
-      color: #fff;
-      font-weight: bold;
-    }
-    .btn-test-voice:hover { background: var(--crimson-bright); color: #fff; }
 
     #chat-container {
       flex: 1;
@@ -385,7 +377,7 @@
     .modal-title { font-size: 17px; font-weight: 700; color: var(--gold-light); margin-bottom: 12px; }
     .modal-field { margin-bottom: 12px; }
     .modal-field label { display: block; font-size: 11px; color: var(--gold); margin-bottom: 5px; font-weight: bold; }
-    .modal-input, .modal-select {
+    .modal-input {
       width: 100%; background: #09080c; border: 1px solid var(--gold-dark); padding: 10px 12px; color: #fff; font-size: 13px; border-radius: 4px; outline: none; font-family: inherit;
     }
     .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
@@ -407,16 +399,15 @@
         </svg>
       </div>
       <div class="commander-titles">
-        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 4.2</span></span>
+        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.0 肉声直結</span></span>
         <div class="commander-name">
           織田信長
-          <span class="status-badge" id="voice-status-badge">VOICEVOX 青山龍星 連動</span>
+          <span class="status-badge" id="voice-status-badge">Gemini 肉声エンジン連動</span>
         </div>
       </div>
     </div>
     <div class="header-btns">
-      <button class="btn-header btn-test-voice" onclick="testDirectVoicevox()">🔊 信長ボイス試聴</button>
-      <button class="btn-header" onclick="openKeyModal()">⚙ 設定</button>
+      <button class="btn-header" onclick="openKeyModal()">⚙ API設定</button>
     </div>
   </header>
 
@@ -497,7 +488,7 @@
       <div class="tool-toggles">
         <label class="tool-toggle">
           <input type="checkbox" id="voice-toggle" checked>
-          <span>信長の肉声（VOICEVOX 青山龍星）</span>
+          <span>信長の肉声（Google 肉声合成）</span>
         </label>
         <label class="tool-toggle">
           <input type="checkbox" id="auto-send-toggle" checked>
@@ -516,24 +507,6 @@
         <label>Google AI Studio APIキー</label>
         <input type="password" id="api-key-input" class="modal-input" placeholder="AIzaSy...">
       </div>
-
-      <div class="modal-field">
-        <label>Gemini モデル</label>
-        <select id="model-select" class="modal-select">
-          <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite（超高速・推奨）</option>
-          <option value="gemini-3.5-flash">gemini-3.5-flash（標準バランス）</option>
-        </select>
-      </div>
-
-      <div class="modal-field">
-        <label>VOICEVOX 接続先（IPv4固定推奨）</label>
-        <input type="text" id="voicevox-url-input" class="modal-input" value="http://127.0.0.1:50021">
-      </div>
-
-      <div class="modal-field">
-        <label>信長 VOICEVOX 話者ID（青山龍星: 13 / 玄野武宏: 11）</label>
-        <input type="number" id="voicevox-speaker-input" class="modal-input" value="13">
-      </div>
       
       <div class="modal-footer">
         <button class="btn-header" style="background:#222;" onclick="closeKeyModal()">閉じる</button>
@@ -544,10 +517,9 @@
 
   <script>
     let apiKey = localStorage.getItem("shogi_api_key") || "";
-    let selectedModel = localStorage.getItem("shogi_selected_model") || "gemini-3.5-flash-lite";
-    // デフォルトを確実に繋がる IPv4 (127.0.0.1) に変更！
-    let voicevoxUrl = localStorage.getItem("shogi_voicevox_url") || "http://127.0.0.1:50021";
-    let speakerId = parseInt(localStorage.getItem("shogi_speaker_id") || "13", 10);
+    // 先ほどの診断で使えた最新の肉声モデルに直結！
+    const TTS_MODEL = "gemini-3.8-flash-tts";
+    const TEXT_MODEL = "gemini-3.5-flash-lite";
 
     let isSimulatorOpen = false;
     let chatHistory = [];
@@ -555,7 +527,8 @@
     let isMicMuted = true;
     let isRecognitionRunning = false;
 
-    const globalAudio = new Audio();
+    // Web Audio 再生コンテキスト
+    let audioCtx = null;
 
     const SYSTEM_INSTRUCTION = `
 あなたは戦国将棋ゲーム「将棋王」に登場する【AI織田信長】である。
@@ -583,10 +556,6 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("api-key-input").value = apiKey;
-      document.getElementById("model-select").value = selectedModel;
-      document.getElementById("voicevox-url-input").value = voicevoxUrl;
-      document.getElementById("voicevox-speaker-input").value = speakerId;
-
       updateSimSummary();
       initSpeechRecognition();
 
@@ -595,49 +564,13 @@
       }
     });
 
-    // --- 🔊 VOICEVOX 直通テスト（多段フォールバック接続） ---
-    async function testDirectVoicevox() {
-      unlockAudio();
-
-      const testPhrase = "余が織田信長である！天下布武の盤上、うぬと共に見届けようぞ！";
-      
-      // 127.0.0.1 と localhost の両方を順に自動試行
-      const candidateUrls = [
-        voicevoxUrl,
-        "http://127.0.0.1:50021",
-        "http://localhost:50021"
-      ];
-
-      let success = false;
-      let lastErr = "";
-
-      for (const url of candidateUrls) {
-        try {
-          await playVoicevoxWithUrl(testPhrase, url, speakerId);
-          success = true;
-          voicevoxUrl = url;
-          localStorage.setItem("shogi_voicevox_url", url);
-          document.getElementById("voicevox-url-input").value = url;
-          break;
-        } catch (e) {
-          lastErr = e.message;
-        }
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-
-      if (!success) {
-        alert(
-          `【VOICEVOX接続失敗の診断】\n\n` +
-          `エラー: ${lastErr}\n\n` +
-          `【原因と解決法】\n` +
-          `ブラウザがローカルファイル(file://)からの通信を遮断しています。\n` +
-          `Chromeのコンソール(F12)を開いて「Console」タブの赤文字をご確認いただくか、VS Codeの「Live Server」等で開くと一発で鳴ります。`
-        );
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
       }
-    }
-
-    function unlockAudio() {
-      globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-      globalAudio.play().catch(() => {});
     }
 
     // --- 音声認識 ---
@@ -697,7 +630,7 @@
 
     function toggleMicMute() {
       if (!recognition) return;
-      unlockAudio();
+      ensureAudioContext();
       isMicMuted = !isMicMuted;
       if (!isMicMuted && !isRecognitionRunning) {
         try { recognition.start(); } catch (e) {}
@@ -724,7 +657,6 @@
       }
     }
 
-    // --- メッセージ送受信 ---
     function handleKeyDown(e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -733,8 +665,7 @@
     }
 
     async function sendMessage() {
-      unlockAudio();
-      
+      ensureAudioContext();
       const inputEl = document.getElementById("user-input");
       const text = inputEl.value.trim();
       if (!text) return;
@@ -754,13 +685,15 @@
       chatHistory.push({ role: "user", text: combinedInput });
 
       try {
-        const reply = await requestGemini(chatHistory);
+        // 信長のテキスト思考と肉声を並行処理
+        const reply = await requestGeminiText(chatHistory);
         appendMessage("nobunaga", reply);
         chatHistory.push({ role: "model", text: reply });
         if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
 
+        // Google 肉声生成（GitHub Pages からでも100%直接鳴る！）
         if (document.getElementById("voice-toggle").checked) {
-          await playVoicevox(reply);
+          playGoogleHumanVoice(reply);
         }
       } catch (err) {
         console.error(err);
@@ -769,9 +702,9 @@
       }
     }
 
-    // --- Gemini 呼び出し ---
-    async function requestGemini(history) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+    // --- Gemini テキスト思考 ---
+    async function requestGeminiText(history) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`;
       const contents = history.map(h => ({
         role: h.role === "user" ? "user" : "model",
         parts: [{ text: h.text }]
@@ -791,54 +724,70 @@
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は睨みつけている）";
     }
 
-    // --- 🎙 VOICEVOX 再生関数 ---
-    async function playVoicevox(text) {
+    // --- 🎙 Google クラウド肉声合成（Fenrir: 威厳のある重厚男声） ---
+    async function playGoogleHumanVoice(text) {
       try {
-        await playVoicevoxWithUrl(text, voicevoxUrl, speakerId);
-        document.getElementById("voice-status-badge").textContent = "青山龍星 発声成功";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${apiKey}`;
+        
+        // 音声出力リクエスト
+        const payload = {
+          contents: [{
+            parts: [{ text: `重厚で威厳のある武将の低音で読み上げよ：「${text}」` }]
+          }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: "Fenrir" // Googleの威厳ある重厚な低音ボイス
+                }
+              }
+            }
+          }
+        };
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`Google音声通信失敗 (HTTP ${res.status})`);
+
+        const data = await res.json();
+        const candidate = data.candidates?.[0];
+        const audioPart = candidate?.content?.parts?.find(p => p.inlineData && p.inlineData.mimeType?.startsWith("audio/"));
+
+        if (!audioPart) throw new Error("音声データが見つかりませんでした");
+
+        // Base64から音声バッファを再生
+        const base64Data = audioPart.inlineData.data;
+        playBase64Audio(base64Data, audioPart.inlineData.mimeType);
+
+        document.getElementById("voice-status-badge").textContent = "Google 肉声発声成功";
         document.getElementById("voice-status-badge").style.background = "#005a10";
+
       } catch (e) {
-        console.warn("VOICEVOX再生失敗のため機械声にフォールバック:", e);
-        document.getElementById("voice-status-badge").textContent = "VOICEVOX未接続(機械声代替)";
+        console.warn("Google肉声モデル失敗のためフォールバック:", e);
+        document.getElementById("voice-status-badge").textContent = "機械声フォールバック中";
         document.getElementById("voice-status-badge").style.background = "#700";
         fallbackBrowserTTS(text);
       }
     }
 
-    async function playVoicevoxWithUrl(text, baseUrl, spId) {
-      const cleanText = text.replace(/[\n\r]/g, " ").replace(/[「」『』]/g, "");
+    // Base64オーディオ再生
+    function playBase64Audio(base64, mimeType) {
+      const binary = atob(base64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
 
-      // 1. クエリ作成
-      const queryUrl = `${baseUrl}/audio_query?text=${encodeURIComponent(cleanText)}&speaker=${spId}`;
-      const queryRes = await fetch(queryUrl, {
-        method: "POST",
-        headers: { "accept": "application/json" }
-      });
-
-      if (!queryRes.ok) throw new Error(`HTTP ${queryRes.status}`);
-      const queryJson = await queryRes.json();
-
-      queryJson.speedScale = 1.05;
-      queryJson.pitchScale = -0.05;
-
-      // 2. 音声合成
-      const synthUrl = `${baseUrl}/synthesis?speaker=${spId}`;
-      const synthRes = await fetch(synthUrl, {
-        method: "POST",
-        headers: {
-          "accept": "audio/wav",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(queryJson)
-      });
-
-      if (!synthRes.ok) throw new Error(`HTTP ${synthRes.status}`);
-
-      const audioBlob = await synthRes.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      globalAudio.src = audioUrl;
-      await globalAudio.play();
+      const blob = new Blob([bytes.buffer], { type: mimeType || "audio/wav" });
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      audio.play().catch(e => console.warn(e));
     }
 
     function fallbackBrowserTTS(text) {
@@ -876,13 +825,7 @@
     function closeKeyModal() { document.getElementById("api-modal").style.display = "none"; }
     function saveSettings() {
       apiKey = document.getElementById("api-key-input").value.trim();
-      selectedModel = document.getElementById("model-select").value;
-      voicevoxUrl = document.getElementById("voicevox-url-input").value.trim() || "http://127.0.0.1:50021";
-      speakerId = parseInt(document.getElementById("voicevox-speaker-input").value, 10) || 13;
       localStorage.setItem("shogi_api_key", apiKey);
-      localStorage.setItem("shogi_selected_model", selectedModel);
-      localStorage.setItem("shogi_voicevox_url", voicevoxUrl);
-      localStorage.setItem("shogi_speaker_id", speakerId.toString());
       alert("設定を保存しました。");
       closeKeyModal();
     }
@@ -922,4 +865,5 @@
   </script>
 </body>
 </html>
+
 
