@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.0 肉声直結版】</title>
+  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.1 完全同期版】</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;900&display=swap" rel="stylesheet">
@@ -105,8 +105,6 @@
       font-weight: bold;
     }
 
-    .header-btns { display: flex; gap: 8px; }
-
     .btn-header {
       background: rgba(30, 25, 36, 0.8);
       border: 1px solid var(--gold-dark);
@@ -136,11 +134,11 @@
       display: flex;
       gap: 12px;
       max-width: 84%;
-      animation: fadeIn 0.25s ease-out;
+      animation: fadeIn 0.3s ease-out;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -199,6 +197,27 @@
       border-top: 6px solid transparent;
       border-bottom: 6px solid transparent;
       border-left: 8px solid rgba(212, 175, 55, 0.5);
+    }
+
+    /* ローディング状態の点滅 */
+    .loading-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--gold-light);
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--gold);
+      border-radius: 50%;
+      animation: pulseAnim 1.2s infinite ease-in-out;
+    }
+    .pulse-dot:nth-child(2) { animation-delay: 0.2s; }
+    .pulse-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulseAnim {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
     }
 
     footer {
@@ -279,6 +298,7 @@
     }
     .btn-quick-move:hover { background: var(--gold); color: #000; }
 
+    /* 入力セクション */
     .input-section { display: flex; gap: 8px; align-items: center; }
 
     .input-box {
@@ -304,13 +324,14 @@
       box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     }
 
-    .btn-mute-toggle {
+    /* 高安定マイクボタン */
+    .btn-mic-toggle {
       background: #251f2b;
-      border: 1.5px solid #555;
-      color: #bbb;
-      padding: 0 14px;
+      border: 1.5px solid var(--gold-dark);
+      color: #ddd;
+      padding: 0 16px;
       font-family: inherit;
-      font-size: 13px;
+      font-size: 13.5px;
       border-radius: 6px;
       cursor: pointer;
       min-height: 45px;
@@ -321,16 +342,17 @@
       transition: all 0.2s;
       user-select: none;
     }
-    .btn-mute-toggle.active-mic {
-      background: rgba(40, 167, 69, 0.2);
-      border-color: var(--green-live);
-      color: #a3ffb8;
-      box-shadow: 0 0 10px rgba(40, 167, 69, 0.4);
+
+    .btn-mic-toggle.recording {
+      background: linear-gradient(180deg, #d32f2f 0%, #8b0000 100%);
+      border-color: #ff9999;
+      color: #fff;
+      animation: pulseMic 1.2s infinite;
     }
-    .btn-mute-toggle.muted {
-      background: rgba(139, 0, 0, 0.25);
-      border-color: var(--crimson-bright);
-      color: #ffb4b4;
+    @keyframes pulseMic {
+      0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
     }
 
     .btn-action {
@@ -399,10 +421,10 @@
         </svg>
       </div>
       <div class="commander-titles">
-        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.0 肉声直結</span></span>
+        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.1 完全同期</span></span>
         <div class="commander-name">
           織田信長
-          <span class="status-badge" id="voice-status-badge">Gemini 肉声エンジン連動</span>
+          <span class="status-badge" id="voice-status-badge">声と言葉・完全同期稼働</span>
         </div>
       </div>
     </div>
@@ -423,6 +445,7 @@
   </main>
 
   <footer>
+    <!-- 将棋戦況シミュレータ -->
     <div class="simulator-container">
       <div class="simulator-header" onclick="toggleSimulator()">
         <div class="sim-title">
@@ -471,14 +494,16 @@
       </div>
     </div>
 
+    <!-- チャット入力欄 ＋ マイクボタン -->
     <div class="input-section">
       <div class="input-box">
-        <input type="text" id="user-input" class="main-input" placeholder="信長へ進言、または左のマイクを入れて肉声で語りかける…" onkeydown="handleKeyDown(event)">
+        <input type="text" id="user-input" class="main-input" placeholder="信長へ進言、または右のマイクを押して話しかける…" onkeydown="handleKeyDown(event)">
       </div>
 
-      <button class="btn-mute-toggle muted" id="mute-toggle-btn" onclick="toggleMicMute()">
-        <span id="mute-icon">🔴</span>
-        <span id="mute-label">マイク消音中</span>
+      <!-- 高安定マイクボタン -->
+      <button class="btn-mic-toggle" id="mic-toggle-btn" onclick="toggleVoiceInput()">
+        <span id="mic-icon">🎙</span>
+        <span id="mic-label">音声入力</span>
       </button>
 
       <button class="btn-action" id="send-btn" onclick="sendMessage()">一手返す</button>
@@ -492,10 +517,10 @@
         </label>
         <label class="tool-toggle">
           <input type="checkbox" id="auto-send-toggle" checked>
-          <span>音声認識完了時に自動送信</span>
+          <span>音声入力完了時に自動送信</span>
         </label>
       </div>
-      <span id="mic-status" style="color:var(--gold-light);">マイク: 消音（ボタンを押すと聞き取ります）</span>
+      <span id="mic-status-text" style="color:var(--gold-light);">マイク待機中</span>
     </div>
   </footer>
 
@@ -517,17 +542,17 @@
 
   <script>
     let apiKey = localStorage.getItem("shogi_api_key") || "";
-    // 先ほどの診断で使えた最新の肉声モデルに直結！
     const TTS_MODEL = "gemini-3.8-flash-tts";
     const TEXT_MODEL = "gemini-3.5-flash-lite";
 
     let isSimulatorOpen = false;
     let chatHistory = [];
+    
+    // 音声認識管理
     let recognition = null;
-    let isMicMuted = true;
-    let isRecognitionRunning = false;
+    let isRecording = false;
 
-    // Web Audio 再生コンテキスト
+    // 音声再生コンテキスト
     let audioCtx = null;
 
     const SYSTEM_INSTRUCTION = `
@@ -573,90 +598,95 @@
       }
     }
 
-    // --- 音声認識 ---
+    // --- 🎙 音声認識（高安定・明示的トグル方式） ---
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        document.getElementById("mute-toggle-btn").style.display = "none";
+        document.getElementById("mic-toggle-btn").style.display = "none";
+        document.getElementById("mic-status-text").textContent = "このブラウザは音声認識に非対応です";
         return;
       }
 
       recognition = new SpeechRecognition();
       recognition.lang = "ja-JP";
-      recognition.continuous = true;
-      recognition.interimResults = true;
+      recognition.continuous = false;      // 安定のため発話ごとに完了させる
+      recognition.interimResults = true;   // 喋っている途中もリアルタイム表示
 
       recognition.onstart = () => {
-        isRecognitionRunning = true;
-        updateMicUI();
+        isRecording = true;
+        updateMicBtnUI(true);
+        document.getElementById("mic-status-text").textContent = "🎙 話してください（認識中…）";
       };
 
       recognition.onresult = (event) => {
-        if (isMicMuted) return;
-
-        let interimText = "";
-        let finalText = "";
-
+        let transcript = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const trans = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalText += trans;
-          } else {
-            interimText += trans;
-          }
+          transcript += event.results[i][0].transcript;
         }
-
-        const inputEl = document.getElementById("user-input");
-        if (finalText) {
-          inputEl.value = finalText;
-          if (document.getElementById("auto-send-toggle").checked && finalText.trim()) {
-            sendMessage();
-          }
-        } else if (interimText) {
-          inputEl.value = interimText;
-        }
+        // 喋った内容をリアルタイムに入力欄へ反映！
+        document.getElementById("user-input").value = transcript;
       };
 
-      recognition.onerror = (e) => console.warn(e.error);
+      recognition.onerror = (e) => {
+        console.warn("音声認識エラー:", e.error);
+        if (e.error === "not-allowed") {
+          alert("マイクの使用が許可されていません。ブラウザのアドレスバーの鍵アイコンからマイクを許可してください。");
+        }
+        stopRecordingUI();
+      };
 
       recognition.onend = () => {
-        isRecognitionRunning = false;
-        if (!isMicMuted) {
-          try { recognition.start(); } catch (e) {}
+        stopRecordingUI();
+        const autoSend = document.getElementById("auto-send-toggle").checked;
+        const inputVal = document.getElementById("user-input").value.trim();
+        // 喋り終えたら自動送信
+        if (autoSend && inputVal) {
+          sendMessage();
         }
-        updateMicUI();
       };
     }
 
-    function toggleMicMute() {
+    function toggleVoiceInput() {
       if (!recognition) return;
       ensureAudioContext();
-      isMicMuted = !isMicMuted;
-      if (!isMicMuted && !isRecognitionRunning) {
-        try { recognition.start(); } catch (e) {}
-      }
-      updateMicUI();
-    }
 
-    function updateMicUI() {
-      const btn = document.getElementById("mute-toggle-btn");
-      const icon = document.getElementById("mute-icon");
-      const label = document.getElementById("mute-label");
-      const status = document.getElementById("mic-status");
-
-      if (isMicMuted) {
-        btn.className = "btn-mute-toggle muted";
-        icon.textContent = "🔴";
-        label.textContent = "マイク消音中";
-        status.textContent = "マイク: 消音（ボタンを押すと聞き取ります）";
+      if (isRecording) {
+        recognition.stop();
       } else {
-        btn.className = "btn-mute-toggle active-mic";
-        icon.textContent = "🎙🟢";
-        label.textContent = "声を聴いている…";
-        status.textContent = "信長公がうぬの言霊を待っている…（話し終えると自動送信）";
+        try {
+          // 入力欄をクリアして聞き取り開始
+          document.getElementById("user-input").value = "";
+          recognition.start();
+        } catch (e) {
+          console.warn("再開トライ:", e);
+          recognition.stop();
+          setTimeout(() => recognition.start(), 200);
+        }
       }
     }
 
+    function updateMicBtnUI(recording) {
+      const btn = document.getElementById("mic-toggle-btn");
+      const icon = document.getElementById("mic-icon");
+      const label = document.getElementById("mic-label");
+      if (recording) {
+        btn.classList.add("recording");
+        icon.textContent = "🔴";
+        label.textContent = "聴取中…";
+      } else {
+        btn.classList.remove("recording");
+        icon.textContent = "🎙";
+        label.textContent = "音声入力";
+      }
+    }
+
+    function stopRecordingUI() {
+      isRecording = false;
+      updateMicBtnUI(false);
+      document.getElementById("mic-status-text").textContent = "マイク待機中（ボタンを押すと入力）";
+    }
+
+    // --- メッセージ送受信（完全同期エンジン） ---
     function handleKeyDown(e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -678,26 +708,47 @@
 
       appendMessage("player", text);
       inputEl.value = "";
-      setLoading(true);
 
       const ctxPrompt = getContextPrompt();
       const combinedInput = `${ctxPrompt}\n${text}`;
       chatHistory.push({ role: "user", text: combinedInput });
 
+      // 【演出】思案中メッセージを表示
+      setLoading(true, "好敵手の一手を見定め、思案中ぞ……");
+
       try {
-        // 信長のテキスト思考と肉声を並行処理
-        const reply = await requestGeminiText(chatHistory);
-        appendMessage("nobunaga", reply);
-        chatHistory.push({ role: "model", text: reply });
+        // 1. テキスト考案
+        const replyText = await requestGeminiText(chatHistory);
+
+        chatHistory.push({ role: "model", text: replyText });
         if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
 
-        // Google 肉声生成（GitHub Pages からでも100%直接鳴る！）
-        if (document.getElementById("voice-toggle").checked) {
-          playGoogleHumanVoice(reply);
+        const needVoice = document.getElementById("voice-toggle").checked;
+
+        if (needVoice) {
+          // 【演出】音声準備中メッセージへ切り替え
+          setLoading(true, "信長、発声の気配……（言霊を凝縮中）");
+
+          // 2. 音声バイナリを取得（まだセリフは画面に出さない！）
+          const audioBlob = await fetchGoogleVoiceBlob(replyText);
+
+          // 3. 【完全同期】思案中メッセージを消し、声の再生開始と同時にセリフを表示！
+          setLoading(false);
+          appendMessage("nobunaga", replyText);
+
+          if (audioBlob) {
+            playBlobAudio(audioBlob);
+          } else {
+            fallbackBrowserTTS(replyText);
+          }
+        } else {
+          // 音声OFFの場合は即時表示
+          setLoading(false);
+          appendMessage("nobunaga", replyText);
         }
+
       } catch (err) {
         console.error(err);
-      } finally {
         setLoading(false);
       }
     }
@@ -724,12 +775,10 @@
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は睨みつけている）";
     }
 
-    // --- 🎙 Google クラウド肉声合成（Fenrir: 威厳のある重厚男声） ---
-    async function playGoogleHumanVoice(text) {
+    // --- Google 肉声Blob取得 ---
+    async function fetchGoogleVoiceBlob(text) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${apiKey}`;
-        
-        // 音声出力リクエスト
         const payload = {
           contents: [{
             parts: [{ text: `重厚で威厳のある武将の低音で読み上げよ：「${text}」` }]
@@ -739,7 +788,7 @@
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: {
-                  voiceName: "Fenrir" // Googleの威厳ある重厚な低音ボイス
+                  voiceName: "Fenrir" // 威厳ある低音ボイス
                 }
               }
             }
@@ -752,39 +801,28 @@
           body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error(`Google音声通信失敗 (HTTP ${res.status})`);
+        if (!res.ok) return null;
 
         const data = await res.json();
-        const candidate = data.candidates?.[0];
-        const audioPart = candidate?.content?.parts?.find(p => p.inlineData && p.inlineData.mimeType?.startsWith("audio/"));
+        const audioPart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData && p.inlineData.mimeType?.startsWith("audio/"));
+        if (!audioPart) return null;
 
-        if (!audioPart) throw new Error("音声データが見つかりませんでした");
-
-        // Base64から音声バッファを再生
-        const base64Data = audioPart.inlineData.data;
-        playBase64Audio(base64Data, audioPart.inlineData.mimeType);
-
-        document.getElementById("voice-status-badge").textContent = "Google 肉声発声成功";
-        document.getElementById("voice-status-badge").style.background = "#005a10";
+        const base64 = audioPart.inlineData.data;
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return new Blob([bytes.buffer], { type: audioPart.inlineData.mimeType || "audio/wav" });
 
       } catch (e) {
-        console.warn("Google肉声モデル失敗のためフォールバック:", e);
-        document.getElementById("voice-status-badge").textContent = "機械声フォールバック中";
-        document.getElementById("voice-status-badge").style.background = "#700";
-        fallbackBrowserTTS(text);
+        console.warn("音声生成エラー:", e);
+        return null;
       }
     }
 
-    // Base64オーディオ再生
-    function playBase64Audio(base64, mimeType) {
-      const binary = atob(base64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-
-      const blob = new Blob([bytes.buffer], { type: mimeType || "audio/wav" });
+    // --- 音声再生 ---
+    function playBlobAudio(blob) {
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
       audio.play().catch(e => console.warn(e));
@@ -800,7 +838,54 @@
       window.speechSynthesis.speak(utterance);
     }
 
-    // --- UI補助 ---
+    // --- UI・ローディング演出 ---
+    function setLoading(isLoading, statusText = "") {
+      document.getElementById("send-btn").disabled = isLoading;
+      document.getElementById("user-input").disabled = isLoading;
+      const loadingId = "nobunaga-loading-card";
+      let existing = document.getElementById(loadingId);
+
+      if (isLoading) {
+        if (!existing) {
+          const row = document.createElement("div");
+          row.id = loadingId;
+          row.className = "msg-row nobunaga";
+          row.innerHTML = `
+            <div class="msg-crest">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gold)"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/></svg>
+            </div>
+            <div class="msg-bubble" style="opacity:0.9;">
+              <span class="loading-pulse">
+                <span id="loading-desc">${statusText}</span>
+                <span class="pulse-dot"></span>
+                <span class="pulse-dot"></span>
+                <span class="pulse-dot"></span>
+              </span>
+            </div>
+          `;
+          document.getElementById("chat-container").appendChild(row);
+        } else {
+          document.getElementById("loading-desc").textContent = statusText;
+        }
+        document.getElementById("chat-container").scrollTop = document.getElementById("chat-container").scrollHeight;
+      } else {
+        if (existing) existing.remove();
+        document.getElementById("user-input").focus();
+      }
+    }
+
+    function appendMessage(sender, text) {
+      const container = document.getElementById("chat-container");
+      const row = document.createElement("div");
+      row.className = `msg-row ${sender}`;
+      row.innerHTML = sender === "nobunaga"
+        ? `<div class="msg-crest"><svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gold)"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/></svg></div><div class="msg-bubble">${escapeHtml(text)}</div>`
+        : `<div class="msg-crest"><svg viewBox="0 0 24 24" width="18" height="18" fill="var(--gold-light)"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2"/></svg></div><div class="msg-bubble">${escapeHtml(text)}</div>`;
+      container.appendChild(row);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // --- 将棋シミュレータ補助 ---
     function toggleSimulator() {
       isSimulatorOpen = !isSimulatorOpen;
       document.getElementById("simulator-body").style.display = isSimulatorOpen ? "grid" : "none";
@@ -830,40 +915,10 @@
       closeKeyModal();
     }
 
-    function appendMessage(sender, text) {
-      const container = document.getElementById("chat-container");
-      const row = document.createElement("div");
-      row.className = `msg-row ${sender}`;
-      row.innerHTML = sender === "nobunaga"
-        ? `<div class="msg-crest"><svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gold)"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/></svg></div><div class="msg-bubble">${escapeHtml(text)}</div>`
-        : `<div class="msg-crest"><svg viewBox="0 0 24 24" width="18" height="18" fill="var(--gold-light)"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2"/></svg></div><div class="msg-bubble">${escapeHtml(text)}</div>`;
-      container.appendChild(row);
-      container.scrollTop = container.scrollHeight;
-    }
-
-    function setLoading(isLoading) {
-      document.getElementById("send-btn").disabled = isLoading;
-      document.getElementById("user-input").disabled = isLoading;
-      const loadingId = "nobunaga-loading";
-      const existing = document.getElementById(loadingId);
-      if (isLoading && !existing) {
-        const row = document.createElement("div");
-        row.id = loadingId;
-        row.className = "msg-row nobunaga";
-        row.innerHTML = `<div class="msg-crest"><svg viewBox="0 0 24 24" width="20" height="20" fill="var(--gold)"><path d="M12 2L1 21h22L12 2zm0 3.8L19.5 19h-15L12 5.8z"/></svg></div><div class="msg-bubble" style="opacity:0.8;">好敵手の一手を見定め、思案中ぞ……</div>`;
-        document.getElementById("chat-container").appendChild(row);
-        document.getElementById("chat-container").scrollTop = document.getElementById("chat-container").scrollHeight;
-      } else if (!isLoading && existing) {
-        existing.remove();
-        document.getElementById("user-input").focus();
-      }
-    }
-
     function escapeHtml(str) {
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
   </script>
 </body>
 </html>
-
 
