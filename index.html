@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.1 完全同期版】</title>
+  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.2 確実稼働版】</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;900&display=swap" rel="stylesheet">
@@ -105,6 +105,8 @@
       font-weight: bold;
     }
 
+    .header-btns { display: flex; gap: 8px; }
+
     .btn-header {
       background: rgba(30, 25, 36, 0.8);
       border: 1px solid var(--gold-dark);
@@ -199,7 +201,6 @@
       border-left: 8px solid rgba(212, 175, 55, 0.5);
     }
 
-    /* ローディング状態の点滅 */
     .loading-pulse {
       display: inline-flex;
       align-items: center;
@@ -298,7 +299,6 @@
     }
     .btn-quick-move:hover { background: var(--gold); color: #000; }
 
-    /* 入力セクション */
     .input-section { display: flex; gap: 8px; align-items: center; }
 
     .input-box {
@@ -324,7 +324,6 @@
       box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     }
 
-    /* 高安定マイクボタン */
     .btn-mic-toggle {
       background: #251f2b;
       border: 1.5px solid var(--gold-dark);
@@ -378,7 +377,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--text-sub);
       padding: 0 4px;
       flex-wrap: wrap;
@@ -388,6 +387,19 @@
     .tool-toggles { display: flex; gap: 14px; align-items: center; }
     .tool-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
     .tool-toggle input { accent-color: var(--gold); }
+
+    /* リアルタイムマイク状況モニターバー */
+    .mic-monitor {
+      padding: 3px 10px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #443c33;
+      border-radius: 4px;
+      color: var(--gold-light);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
@@ -421,14 +433,15 @@
         </svg>
       </div>
       <div class="commander-titles">
-        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.1 完全同期</span></span>
+        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.2 確実稼働版</span></span>
         <div class="commander-name">
           織田信長
-          <span class="status-badge" id="voice-status-badge">声と言葉・完全同期稼働</span>
+          <span class="status-badge" id="voice-status-badge">声と言葉・完全同期中</span>
         </div>
       </div>
     </div>
     <div class="header-btns">
+      <button class="btn-header" onclick="testMicHardware()">🎙 マイク動作テスト</button>
       <button class="btn-header" onclick="openKeyModal()">⚙ API設定</button>
     </div>
   </header>
@@ -445,7 +458,6 @@
   </main>
 
   <footer>
-    <!-- 将棋戦況シミュレータ -->
     <div class="simulator-container">
       <div class="simulator-header" onclick="toggleSimulator()">
         <div class="sim-title">
@@ -494,13 +506,12 @@
       </div>
     </div>
 
-    <!-- チャット入力欄 ＋ マイクボタン -->
+    <!-- チャット入力欄 ＋ 音声入力ボタン -->
     <div class="input-section">
       <div class="input-box">
         <input type="text" id="user-input" class="main-input" placeholder="信長へ進言、または右のマイクを押して話しかける…" onkeydown="handleKeyDown(event)">
       </div>
 
-      <!-- 高安定マイクボタン -->
       <button class="btn-mic-toggle" id="mic-toggle-btn" onclick="toggleVoiceInput()">
         <span id="mic-icon">🎙</span>
         <span id="mic-label">音声入力</span>
@@ -520,7 +531,11 @@
           <span>音声入力完了時に自動送信</span>
         </label>
       </div>
-      <span id="mic-status-text" style="color:var(--gold-light);">マイク待機中</span>
+      <!-- リアルタイムマイク状況モニター -->
+      <div class="mic-monitor">
+        <span id="mic-indicator-dot" style="color:#aaa;">●</span>
+        <span id="mic-status-text">マイク待機中（ボタンを押して発声）</span>
+      </div>
     </div>
   </footer>
 
@@ -542,8 +557,13 @@
 
   <script>
     let apiKey = localStorage.getItem("shogi_api_key") || "";
-    const TTS_MODEL = "gemini-3.8-flash-tts";
     const TEXT_MODEL = "gemini-3.5-flash-lite";
+    // 診断リストで確認済みの音声モデル候補（順次自動試行）
+    const CANDIDATE_VOICE_MODELS = [
+      "gemini-2.5-flash-preview-tts",
+      "gemini-3.8-flash-tts",
+      "gemini-3.1-flash-tts-preview"
+    ];
 
     let isSimulatorOpen = false;
     let chatHistory = [];
@@ -552,7 +572,7 @@
     let recognition = null;
     let isRecording = false;
 
-    // 音声再生コンテキスト
+    // Web Audio 再生コンテキスト
     let audioCtx = null;
 
     const SYSTEM_INSTRUCTION = `
@@ -598,24 +618,35 @@
       }
     }
 
-    // --- 🎙 音声認識（高安定・明示的トグル方式） ---
+    // --- 🎙 マイクハードウェア診断テスト ---
+    async function testMicHardware() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        alert("✅ マイクのアクセスに成功しました！パソコンはマイクを認識しています。このまま「音声入力」ボタンを押して話しかけてみてください。");
+        stream.getTracks().forEach(t => t.stop());
+      } catch (e) {
+        alert("❌ マイクにアクセスできませんでした。\n\n理由: " + e.message + "\n\nブラウザのアドレスバー左側の「鍵マーク」をクリックし、「マイク」を「許可」にしてください。");
+      }
+    }
+
+    // --- 🎙 音声認識（高安定・可視化モニター付き） ---
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
         document.getElementById("mic-toggle-btn").style.display = "none";
-        document.getElementById("mic-status-text").textContent = "このブラウザは音声認識に非対応です";
+        document.getElementById("mic-status-text").textContent = "このブラウザは音声認識非対応です";
         return;
       }
 
       recognition = new SpeechRecognition();
       recognition.lang = "ja-JP";
-      recognition.continuous = false;      // 安定のため発話ごとに完了させる
-      recognition.interimResults = true;   // 喋っている途中もリアルタイム表示
+      recognition.continuous = false;
+      recognition.interimResults = true;
 
       recognition.onstart = () => {
         isRecording = true;
         updateMicBtnUI(true);
-        document.getElementById("mic-status-text").textContent = "🎙 話してください（認識中…）";
+        updateMicMonitor("🔴 聞き取り中…話してください", "#ff4444");
       };
 
       recognition.onresult = (event) => {
@@ -623,14 +654,18 @@
         for (let i = event.resultIndex; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
-        // 喋った内容をリアルタイムに入力欄へ反映！
         document.getElementById("user-input").value = transcript;
+        updateMicMonitor(`🗣 認識中: "${transcript}"`, "#ffd700");
       };
 
       recognition.onerror = (e) => {
         console.warn("音声認識エラー:", e.error);
         if (e.error === "not-allowed") {
-          alert("マイクの使用が許可されていません。ブラウザのアドレスバーの鍵アイコンからマイクを許可してください。");
+          updateMicMonitor("❌ マイクが拒否されています（アドレスバーの鍵マークを確認）", "#ff4444");
+        } else if (e.error === "no-speech") {
+          updateMicMonitor("⚠️ 声が検出されませんでした", "#ffaa00");
+        } else {
+          updateMicMonitor(`⚠️ エラー: ${e.error}`, "#ff4444");
         }
         stopRecordingUI();
       };
@@ -639,9 +674,11 @@
         stopRecordingUI();
         const autoSend = document.getElementById("auto-send-toggle").checked;
         const inputVal = document.getElementById("user-input").value.trim();
-        // 喋り終えたら自動送信
         if (autoSend && inputVal) {
+          updateMicMonitor("✅ 認識完了、送信中…", "#28a745");
           sendMessage();
+        } else {
+          updateMicMonitor("マイク待機中（ボタンを押して発声）", "#aaa");
         }
       };
     }
@@ -654,15 +691,20 @@
         recognition.stop();
       } else {
         try {
-          // 入力欄をクリアして聞き取り開始
           document.getElementById("user-input").value = "";
+          updateMicMonitor("🎙 マイク起動中…", "#ffd700");
           recognition.start();
         } catch (e) {
-          console.warn("再開トライ:", e);
-          recognition.stop();
+          console.warn("再起動リトライ:", e);
+          try { recognition.stop(); } catch (_) {}
           setTimeout(() => recognition.start(), 200);
         }
       }
+    }
+
+    function updateMicMonitor(text, color) {
+      document.getElementById("mic-status-text").textContent = text;
+      document.getElementById("mic-indicator-dot").style.color = color;
     }
 
     function updateMicBtnUI(recording) {
@@ -683,7 +725,6 @@
     function stopRecordingUI() {
       isRecording = false;
       updateMicBtnUI(false);
-      document.getElementById("mic-status-text").textContent = "マイク待機中（ボタンを押すと入力）";
     }
 
     // --- メッセージ送受信（完全同期エンジン） ---
@@ -713,7 +754,7 @@
       const combinedInput = `${ctxPrompt}\n${text}`;
       chatHistory.push({ role: "user", text: combinedInput });
 
-      // 【演出】思案中メッセージを表示
+      // 【演出1】思案中
       setLoading(true, "好敵手の一手を見定め、思案中ぞ……");
 
       try {
@@ -726,23 +767,26 @@
         const needVoice = document.getElementById("voice-toggle").checked;
 
         if (needVoice) {
-          // 【演出】音声準備中メッセージへ切り替え
+          // 【演出2】音声生成中
           setLoading(true, "信長、発声の気配……（言霊を凝縮中）");
 
-          // 2. 音声バイナリを取得（まだセリフは画面に出さない！）
-          const audioBlob = await fetchGoogleVoiceBlob(replyText);
+          // 2. 音声バイナリを取得（生PCMをWAVに完全自動変換！）
+          const audioBuffer = await fetchGoogleVoiceWavBuffer(replyText);
 
-          // 3. 【完全同期】思案中メッセージを消し、声の再生開始と同時にセリフを表示！
+          // 3. 【完全同期】声が出るまさにその瞬間に吹き出しを表示！
           setLoading(false);
           appendMessage("nobunaga", replyText);
 
-          if (audioBlob) {
-            playBlobAudio(audioBlob);
+          if (audioBuffer) {
+            playDecodedAudio(audioBuffer);
+            document.getElementById("voice-status-badge").textContent = "Google 肉声発声成功";
+            document.getElementById("voice-status-badge").style.background = "#005a10";
           } else {
+            document.getElementById("voice-status-badge").textContent = "機械声代替中";
+            document.getElementById("voice-status-badge").style.background = "#700";
             fallbackBrowserTTS(replyText);
           }
         } else {
-          // 音声OFFの場合は即時表示
           setLoading(false);
           appendMessage("nobunaga", replyText);
         }
@@ -775,54 +819,101 @@
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は睨みつけている）";
     }
 
-    // --- Google 肉声Blob取得 ---
-    async function fetchGoogleVoiceBlob(text) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${apiKey}`;
-        const payload = {
-          contents: [{
-            parts: [{ text: `重厚で威厳のある武将の低音で読み上げよ：「${text}」` }]
-          }],
-          generationConfig: {
-            responseModalities: ["AUDIO"],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: "Fenrir" // 威厳ある低音ボイス
+    // --- 🎙 生PCM→WAV変換付き Google 肉声取得エンジン ---
+    async function fetchGoogleVoiceWavBuffer(text) {
+      for (const model of CANDIDATE_VOICE_MODELS) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const payload = {
+            contents: [{
+              parts: [{ text: `重厚で威厳のある武将の低音で読み上げよ：「${text}」` }]
+            }],
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: "Fenrir" // 威厳ある低音ボイス
+                  }
                 }
               }
             }
+          };
+
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          const audioPart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData && p.inlineData.mimeType?.startsWith("audio/"));
+          if (!audioPart) continue;
+
+          const base64 = audioPart.inlineData.data;
+          const mime = audioPart.inlineData.mimeType || "";
+          const binary = atob(base64);
+          const rawBytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            rawBytes[i] = binary.charCodeAt(i);
           }
-        };
 
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+          // 生PCMの場合、ブラウザが再生できる正規のWAVヘッダー（24kHz 16bit mono）を合成！
+          let wavBuffer;
+          if (mime.includes("pcm") || !mime.includes("wav")) {
+            wavBuffer = addWavHeader(rawBytes, 24000);
+          } else {
+            wavBuffer = rawBytes.buffer;
+          }
 
-        if (!res.ok) return null;
+          return wavBuffer;
 
-        const data = await res.json();
-        const audioPart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData && p.inlineData.mimeType?.startsWith("audio/"));
-        if (!audioPart) return null;
-
-        const base64 = audioPart.inlineData.data;
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
+        } catch (e) {
+          console.warn(`モデル ${model} 試行エラー:`, e);
         }
-        return new Blob([bytes.buffer], { type: audioPart.inlineData.mimeType || "audio/wav" });
-
-      } catch (e) {
-        console.warn("音声生成エラー:", e);
-        return null;
       }
+      return null;
+    }
+
+    // --- 生PCMデータにWAVヘッダーを付与する変換器 ---
+    function addWavHeader(pcmData, sampleRate = 24000) {
+      const numChannels = 1;
+      const bitsPerSample = 16;
+      const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+      const blockAlign = numChannels * (bitsPerSample / 8);
+      const dataSize = pcmData.length;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+
+      function writeStr(offset, str) {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+      }
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + dataSize, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCMフォーマット
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, byteRate, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bitsPerSample, true);
+      writeStr(36, 'data');
+      view.setUint32(40, dataSize, true);
+
+      new Uint8Array(buffer, 44).set(pcmData);
+      return buffer;
     }
 
     // --- 音声再生 ---
-    function playBlobAudio(blob) {
+    function playDecodedAudio(arrayBuffer) {
+      const blob = new Blob([arrayBuffer], { type: "audio/wav" });
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
       audio.play().catch(e => console.warn(e));
@@ -885,7 +976,6 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    // --- 将棋シミュレータ補助 ---
     function toggleSimulator() {
       isSimulatorOpen = !isSimulatorOpen;
       document.getElementById("simulator-body").style.display = isSimulatorOpen ? "grid" : "none";
