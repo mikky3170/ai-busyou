@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.2 確実稼働版】</title>
+  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.3 音量メーター搭載版】</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;900&display=swap" rel="stylesheet">
@@ -299,6 +299,7 @@
     }
     .btn-quick-move:hover { background: var(--gold); color: #000; }
 
+    /* 入力バー */
     .input-section { display: flex; gap: 8px; align-items: center; }
 
     .input-box {
@@ -324,6 +325,7 @@
       box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     }
 
+    /* マイクボタン */
     .btn-mic-toggle {
       background: #251f2b;
       border: 1.5px solid var(--gold-dark);
@@ -381,24 +383,47 @@
       color: var(--text-sub);
       padding: 0 4px;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
     }
 
     .tool-toggles { display: flex; gap: 14px; align-items: center; }
     .tool-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
     .tool-toggle input { accent-color: var(--gold); }
 
-    /* リアルタイムマイク状況モニターバー */
-    .mic-monitor {
-      padding: 3px 10px;
+    /* 🎙 リアルタイム音量メーター ＆ 状況表示 */
+    .mic-live-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background: rgba(0, 0, 0, 0.6);
       border: 1px solid #443c33;
       border-radius: 4px;
+      padding: 4px 10px;
+    }
+
+    .volume-meter-track {
+      width: 60px;
+      height: 8px;
+      background: #222;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #555;
+    }
+
+    .volume-meter-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #28a745, #ffd700, #ff4444);
+      transition: width 0.05s ease;
+    }
+
+    .mic-status-text {
       color: var(--gold-light);
       font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .modal-overlay {
@@ -433,7 +458,7 @@
         </svg>
       </div>
       <div class="commander-titles">
-        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.2 確実稼働版</span></span>
+        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.3 音量可視化</span></span>
         <div class="commander-name">
           織田信長
           <span class="status-badge" id="voice-status-badge">声と言葉・完全同期中</span>
@@ -441,7 +466,6 @@
       </div>
     </div>
     <div class="header-btns">
-      <button class="btn-header" onclick="testMicHardware()">🎙 マイク動作テスト</button>
       <button class="btn-header" onclick="openKeyModal()">⚙ API設定</button>
     </div>
   </header>
@@ -531,10 +555,14 @@
           <span>音声入力完了時に自動送信</span>
         </label>
       </div>
-      <!-- リアルタイムマイク状況モニター -->
-      <div class="mic-monitor">
-        <span id="mic-indicator-dot" style="color:#aaa;">●</span>
-        <span id="mic-status-text">マイク待機中（ボタンを押して発声）</span>
+
+      <!-- リアルタイム音量メーター＆ステータスモニター -->
+      <div class="mic-live-box">
+        <span>音量:</span>
+        <div class="volume-meter-track">
+          <div class="volume-meter-bar" id="mic-volume-bar"></div>
+        </div>
+        <span class="mic-status-text" id="mic-status-text">マイク待機中</span>
       </div>
     </div>
   </footer>
@@ -558,7 +586,6 @@
   <script>
     let apiKey = localStorage.getItem("shogi_api_key") || "";
     const TEXT_MODEL = "gemini-3.5-flash-lite";
-    // 診断リストで確認済みの音声モデル候補（順次自動試行）
     const CANDIDATE_VOICE_MODELS = [
       "gemini-2.5-flash-preview-tts",
       "gemini-3.8-flash-tts",
@@ -568,12 +595,12 @@
     let isSimulatorOpen = false;
     let chatHistory = [];
     
-    // 音声認識管理
+    // 音声認識 ＆ 音量メーター管理
     let recognition = null;
     let isRecording = false;
-
-    // Web Audio 再生コンテキスト
-    let audioCtx = null;
+    let micStream = null;
+    let audioMeterContext = null;
+    let meterAnimationId = null;
 
     const SYSTEM_INSTRUCTION = `
 あなたは戦国将棋ゲーム「将棋王」に登場する【AI織田信長】である。
@@ -609,32 +636,12 @@
       }
     });
 
-    function ensureAudioContext() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    // --- 🎙 マイクハードウェア診断テスト ---
-    async function testMicHardware() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        alert("✅ マイクのアクセスに成功しました！パソコンはマイクを認識しています。このまま「音声入力」ボタンを押して話しかけてみてください。");
-        stream.getTracks().forEach(t => t.stop());
-      } catch (e) {
-        alert("❌ マイクにアクセスできませんでした。\n\n理由: " + e.message + "\n\nブラウザのアドレスバー左側の「鍵マーク」をクリックし、「マイク」を「許可」にしてください。");
-      }
-    }
-
-    // --- 🎙 音声認識（高安定・可視化モニター付き） ---
+    // --- 🎙 音声認識 ＋ リアルタイム音量メーター連動 ---
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
         document.getElementById("mic-toggle-btn").style.display = "none";
-        document.getElementById("mic-status-text").textContent = "このブラウザは音声認識非対応です";
+        document.getElementById("mic-status-text").textContent = "音声認識非対応ブラウザです";
         return;
       }
 
@@ -646,7 +653,8 @@
       recognition.onstart = () => {
         isRecording = true;
         updateMicBtnUI(true);
-        updateMicMonitor("🔴 聞き取り中…話してください", "#ff4444");
+        updateMicMonitor("🔴 聞き取り中…話してください！");
+        startVolumeMeter(); // 音量メーター起動
       };
 
       recognition.onresult = (event) => {
@@ -655,17 +663,17 @@
           transcript += event.results[i][0].transcript;
         }
         document.getElementById("user-input").value = transcript;
-        updateMicMonitor(`🗣 認識中: "${transcript}"`, "#ffd700");
+        updateMicMonitor(`🗣 "${transcript}"`);
       };
 
       recognition.onerror = (e) => {
         console.warn("音声認識エラー:", e.error);
-        if (e.error === "not-allowed") {
-          updateMicMonitor("❌ マイクが拒否されています（アドレスバーの鍵マークを確認）", "#ff4444");
-        } else if (e.error === "no-speech") {
-          updateMicMonitor("⚠️ 声が検出されませんでした", "#ffaa00");
+        if (e.error === "no-speech") {
+          updateMicMonitor("⚠️ 声が聞こえませんでした");
+        } else if (e.error === "not-allowed") {
+          updateMicMonitor("❌ マイクが拒否されています");
         } else {
-          updateMicMonitor(`⚠️ エラー: ${e.error}`, "#ff4444");
+          updateMicMonitor(`⚠️ エラー (${e.error})`);
         }
         stopRecordingUI();
       };
@@ -675,36 +683,89 @@
         const autoSend = document.getElementById("auto-send-toggle").checked;
         const inputVal = document.getElementById("user-input").value.trim();
         if (autoSend && inputVal) {
-          updateMicMonitor("✅ 認識完了、送信中…", "#28a745");
+          updateMicMonitor("✅ 認識完了・送信中…");
           sendMessage();
         } else {
-          updateMicMonitor("マイク待機中（ボタンを押して発声）", "#aaa");
+          updateMicMonitor("マイク待機中");
         }
       };
     }
 
-    function toggleVoiceInput() {
+    async function toggleVoiceInput() {
       if (!recognition) return;
-      ensureAudioContext();
 
       if (isRecording) {
         recognition.stop();
       } else {
         try {
           document.getElementById("user-input").value = "";
-          updateMicMonitor("🎙 マイク起動中…", "#ffd700");
+          updateMicMonitor("🎙 マイク起動中…");
           recognition.start();
         } catch (e) {
-          console.warn("再起動リトライ:", e);
+          console.warn("再開リトライ:", e);
           try { recognition.stop(); } catch (_) {}
           setTimeout(() => recognition.start(), 200);
         }
       }
     }
 
-    function updateMicMonitor(text, color) {
+    // --- 🎚 リアルタイム音量メーター（声に合わせて緑バーが動く！） ---
+    async function startVolumeMeter() {
+      try {
+        if (!micStream) {
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+        if (!audioMeterContext) {
+          audioMeterContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioMeterContext.state === 'suspended') {
+          await audioMeterContext.resume();
+        }
+
+        const source = audioMeterContext.createMediaStreamSource(micStream);
+        const analyser = audioMeterContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const bar = document.getElementById("mic-volume-bar");
+
+        function drawMeter() {
+          if (!isRecording) {
+            bar.style.width = "0%";
+            return;
+          }
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / dataArray.length;
+          // 音量を 0%〜100% にマッピング
+          const percent = Math.min(100, Math.round((average / 80) * 100));
+          bar.style.width = `${percent}%`;
+
+          meterAnimationId = requestAnimationFrame(drawMeter);
+        }
+        drawMeter();
+
+      } catch (err) {
+        console.warn("音量メーター開始失敗:", err);
+      }
+    }
+
+    function stopVolumeMeter() {
+      if (meterAnimationId) cancelAnimationFrame(meterAnimationId);
+      const bar = document.getElementById("mic-volume-bar");
+      if (bar) bar.style.width = "0%";
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+      }
+    }
+
+    function updateMicMonitor(text) {
       document.getElementById("mic-status-text").textContent = text;
-      document.getElementById("mic-indicator-dot").style.color = color;
     }
 
     function updateMicBtnUI(recording) {
@@ -725,6 +786,7 @@
     function stopRecordingUI() {
       isRecording = false;
       updateMicBtnUI(false);
+      stopVolumeMeter();
     }
 
     // --- メッセージ送受信（完全同期エンジン） ---
@@ -736,7 +798,6 @@
     }
 
     async function sendMessage() {
-      ensureAudioContext();
       const inputEl = document.getElementById("user-input");
       const text = inputEl.value.trim();
       if (!text) return;
@@ -770,10 +831,10 @@
           // 【演出2】音声生成中
           setLoading(true, "信長、発声の気配……（言霊を凝縮中）");
 
-          // 2. 音声バイナリを取得（生PCMをWAVに完全自動変換！）
+          // 2. 音声バイナリを取得（生PCMをブラウザ再生可能なWAVヘッダー付きに完全合成！）
           const audioBuffer = await fetchGoogleVoiceWavBuffer(replyText);
 
-          // 3. 【完全同期】声が出るまさにその瞬間に吹き出しを表示！
+          // 3. 【完全同期】声の再生開始と同時にセリフの吹き出しを表示！
           setLoading(false);
           appendMessage("nobunaga", replyText);
 
@@ -819,7 +880,7 @@
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は睨みつけている）";
     }
 
-    // --- 🎙 生PCM→WAV変換付き Google 肉声取得エンジン ---
+    // --- 🎙 生PCM→WAV自動合成付き Google 肉声取得 ---
     async function fetchGoogleVoiceWavBuffer(text) {
       for (const model of CANDIDATE_VOICE_MODELS) {
         try {
@@ -1011,4 +1072,5 @@
   </script>
 </body>
 </html>
+
 
