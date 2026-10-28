@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>将棋王 - 武将対話検証機【好敵手・織田信長 Ver 5.6 原点回帰＆ピッチ調整版】</title>
+  <title>将棋王 - 武将対話検証機【好敵手・織田信長 覇王決定版】</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;900&display=swap" rel="stylesheet">
@@ -27,8 +26,8 @@
     body {
       background-color: var(--bg-black);
       background-image: 
-        radial-gradient(ellipse at 50% 0%, rgba(139, 0, 0, 0.3) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 100%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 0%, rgba(139, 0, 0, 0.35) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(212, 175, 55, 0.12) 0%, transparent 50%),
         repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 10px);
       color: var(--text-main);
       font-family: 'Shippori Mincho', 'Yu Mincho', serif;
@@ -456,7 +455,7 @@
         </svg>
       </div>
       <div class="commander-titles">
-        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">Ver 5.6 原点回帰</span></span>
+        <span class="official-rank">尾張の覇王 × 盤上の好敵手 <span class="version-tag">覇王決定版</span></span>
         <div class="commander-name">
           織田信長
           <span class="status-badge" id="voice-status-badge">声と言葉・完全同期稼働</span>
@@ -480,31 +479,33 @@
   </main>
 
   <footer>
-    <!-- 🎚 信長 音声・ピッチ・速度 調整盤 -->
+    <!-- 🎚 信長・覇王決定値（初期値に黄金比をセット） -->
     <div class="voice-tuning-container">
       <div class="simulator-header" onclick="toggleVoiceTuning()">
         <div class="sim-title">
           <span>🔊 信長 声質・ピッチ・速度の調整</span>
           <span id="voice-tuning-indicator" style="font-size:10px; color:var(--gold);">[開く ▾]</span>
         </div>
-        <div class="sim-current-badge" id="voice-tuning-summary">Google肉声 (Fenrir) | ピッチ:0.92x(低音) | 速度:1.0x</div>
+        <div class="sim-current-badge" id="voice-tuning-summary">織田信長・覇王決定値 [Fenrir 0.88x / 0.96x]</div>
       </div>
       <div class="voice-tuning-body" id="voice-tuning-body" style="display: none;">
         <div class="sim-field">
           <label>音声エンジン・話者</label>
           <select id="voice-engine-select" class="sim-select" onchange="updateVoiceTuningSummary()">
-            <option value="google_fenrir" selected>Google肉声 (Fenrir・原点)</option>
+            <option value="google_fenrir" selected>Google肉声 (Fenrir・覇王決定ボイス)</option>
             <option value="voicevox_kurono">VOICEVOX: 玄野武宏 (重厚・武将向き)</option>
             <option value="voicevox_wakamatsu">VOICEVOX: 雀松朱司 (気迫・若武者向き)</option>
           </select>
         </div>
         <div class="sim-field">
-          <label>声の高さ（ピッチ / 低音化）: <span id="pitch-val" class="slider-val-label">0.92x (やや低く渋い)</span></label>
-          <input type="range" id="voice-pitch-slider" min="0.75" max="1.20" step="0.02" value="0.92" oninput="updateVoiceTuningSummary()">
+          <label>声の高さ（ピッチ / 低音化）: <span id="pitch-val" class="slider-val-label">0.88x (覇王の重低音)</span></label>
+          <!-- 黄金比 0.88 に初期固定 -->
+          <input type="range" id="voice-pitch-slider" min="0.75" max="1.20" step="0.02" value="0.88" oninput="updateVoiceTuningSummary()">
         </div>
         <div class="sim-field">
-          <label>話す速さ（速度）: <span id="speed-val" class="slider-val-label">1.00x (通常)</span></label>
-          <input type="range" id="voice-speed-slider" min="0.80" max="1.30" step="0.05" value="1.00" oninput="updateVoiceTuningSummary()">
+          <label>話す速さ（速度）: <span id="speed-val" class="slider-val-label">0.96x (威厳・堂々たる間)</span></label>
+          <!-- 威厳の間 0.96 に初期固定 -->
+          <input type="range" id="voice-speed-slider" min="0.80" max="1.30" step="0.02" value="0.96" oninput="updateVoiceTuningSummary()">
         </div>
       </div>
     </div>
@@ -576,7 +577,7 @@
       <div class="tool-toggles">
         <label class="tool-toggle">
           <input type="checkbox" id="voice-toggle" checked>
-          <span>信長の肉声（クリアピッチ調整機能付き）</span>
+          <span>信長の肉声（覇王決定トーン稼働中）</span>
         </label>
       </div>
 
@@ -608,7 +609,7 @@
 
   <script>
     let apiKey = localStorage.getItem("shogi_api_key") || "";
-    // 【完全復元】マイク文字起こし・思考ともに一番精度が安定していたモデル
+    // マイク文字起こし・思考ともに最も高精度・安定なモデル
     const TEXT_MODEL = "gemini-3.5-flash-lite";
     const CANDIDATE_VOICE_MODELS = [
       "gemini-2.5-flash-preview-tts",
@@ -620,7 +621,7 @@
     let isVoiceTuningOpen = false;
     let chatHistory = [];
     
-    // 生録音エンジン（元の動作検証済みコードに完全復元）
+    // 生録音エンジン
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
@@ -628,7 +629,7 @@
     let meterAudioCtx = null;
     let meterAnimId = null;
 
-    // 【完全復元】信長の本領を発揮するオリジナルの性格定義
+    // 信長システムプロンプト（完全固定）
     const SYSTEM_INSTRUCTION = `
 あなたは戦国将棋ゲーム「将棋王」に登場する【AI織田信長】である。
 対話相手であるプレイヤーは、家臣でも天下の愚民でもなく、信長が生涯で唯一盤上と知略を競い合うことを認めた【無二の好敵手（ライバル）】である。
@@ -663,7 +664,6 @@
       }
     });
 
-    // --- 音声チューニングUIの制御 ---
     function toggleVoiceTuning() {
       isVoiceTuningOpen = !isVoiceTuningOpen;
       document.getElementById("voice-tuning-body").style.display = isVoiceTuningOpen ? "grid" : "none";
@@ -675,23 +675,22 @@
       const pitch = parseFloat(document.getElementById("voice-pitch-slider").value).toFixed(2);
       const speed = parseFloat(document.getElementById("voice-speed-slider").value).toFixed(2);
 
-      let pitchDesc = "原音";
-      if (pitch < 0.95) pitchDesc = "低音・渋み";
-      if (pitch < 0.85) pitchDesc = "極低音・威圧";
-      if (pitch > 1.05) pitchDesc = "高め";
+      let pitchDesc = "覇王の重低音";
+      if (pitch > 0.95) pitchDesc = "通常トーン";
+      if (pitch < 0.82) pitchDesc = "極低音";
 
       document.getElementById("pitch-val").textContent = `${pitch}x (${pitchDesc})`;
-      document.getElementById("speed-val").textContent = `${speed}x (${speed === "1.00" ? "通常" : (speed < 1 ? "遅め" : "早め")})`;
+      document.getElementById("speed-val").textContent = `${speed}x (${speed === "1.00" ? "通常" : (speed < 1 ? "威厳の間" : "早口")})`;
 
-      let engineName = "Google肉声 (Fenrir)";
-      if (engine === "voicevox_kurono") engineName = "VOICEVOX (玄野武宏)";
-      if (engine === "voicevox_wakamatsu") engineName = "VOICEVOX (雀松朱司)";
+      let engineName = "Fenrir (覇王決定)";
+      if (engine === "voicevox_kurono") engineName = "玄野武宏 (VOICEVOX)";
+      if (engine === "voicevox_wakamatsu") engineName = "雀松朱司 (VOICEVOX)";
 
       document.getElementById("voice-tuning-summary").textContent = 
-        `${engineName} | ピッチ:${pitch}x | 速度:${speed}x`;
+        `織田信長・覇王決定値 [${engineName} ${pitch}x / ${speed}x]`;
     }
 
-    // --- 🎙 録音エンジン（元通り確実に拾う構成） ---
+    // --- 🎙 録音エンジン ---
     async function toggleRecordAudio() {
       if (isRecording) {
         stopRecordingAndSend();
@@ -743,7 +742,6 @@
       stopVolumeMeter();
     }
 
-    // --- 音量メーター ---
     function startVolumeMeter(stream) {
       try {
         if (!meterAudioCtx) {
@@ -792,7 +790,6 @@
       }
     }
 
-    // --- 文字起こし処理（gemini-3.5-flash-liteで完全復元） ---
     async function processVoiceInput(audioBlob) {
       if (!apiKey) {
         alert("APIキーを設定してください。");
@@ -864,7 +861,7 @@
       }
     }
 
-    // --- 送受信ロジック ---
+    // --- 送受信 ---
     function handleKeyDown(e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -903,16 +900,13 @@
         if (needVoice) {
           setLoading(true, "信長、発声の気配……（言霊を凝縮中）");
 
-          // 音声生成（VOICEVOX または Google肉声）
           const engine = document.getElementById("voice-engine-select").value;
           let audioBlobOrBuffer = null;
 
           if (engine.startsWith("voicevox_")) {
-            // VOICEVOX（玄野武宏 / 雀松朱司）を試行
             audioBlobOrBuffer = await fetchVoicevoxAudio(replyText, engine);
           }
 
-          // VOICEVOX未起動またはGoogle選択時はGoogle肉声
           if (!audioBlobOrBuffer) {
             audioBlobOrBuffer = await fetchGoogleVoiceWavBuffer(replyText);
           }
@@ -922,7 +916,7 @@
 
           if (audioBlobOrBuffer) {
             playClearPitchedAudio(audioBlobOrBuffer);
-            document.getElementById("voice-status-badge").textContent = engine.startsWith("voicevox_") && audioBlobOrBuffer ? "VOICEVOX発声" : "Google 肉声発声成功";
+            document.getElementById("voice-status-badge").textContent = engine.startsWith("voicevox_") && audioBlobOrBuffer ? "VOICEVOX発声" : "覇王肉声・完全同期発声";
             document.getElementById("voice-status-badge").style.background = "#005a10";
           } else {
             document.getElementById("voice-status-badge").textContent = "機械声代替中";
@@ -940,7 +934,6 @@
       }
     }
 
-    // --- Gemini テキスト思考（復元） ---
     async function requestGeminiText(history) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`;
       const contents = history.map(h => ({
@@ -962,7 +955,6 @@
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "……（信長は睨みつけている）";
     }
 
-    // --- 🎙 元のクリアなGoogle肉声取得（復元） ---
     async function fetchGoogleVoiceWavBuffer(text) {
       for (const model of CANDIDATE_VOICE_MODELS) {
         try {
@@ -976,7 +968,7 @@
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
-                    voiceName: "Fenrir" // 好評だった元のボイス
+                    voiceName: "Fenrir"
                   }
                 }
               }
@@ -1019,11 +1011,9 @@
       return null;
     }
 
-    // --- 🔊 VOICEVOX連携（玄野武宏: ID 11 / 雀松朱司: ID 53） ---
     async function fetchVoicevoxAudio(text, engineType) {
       try {
-        const speakerId = engineType === "voicevox_wakamatsu" ? 53 : 11; // 11=玄野武宏(ノーマル), 53=雀松朱司
-        // VOICEVOXローカルサーバーへの問い合わせ
+        const speakerId = engineType === "voicevox_wakamatsu" ? 53 : 11;
         const queryRes = await fetch(`http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, {
           method: 'POST'
         });
@@ -1038,7 +1028,6 @@
         if (!synthRes.ok) return null;
         return await synthRes.arrayBuffer();
       } catch (e) {
-        // VOICEVOXが立ち上がっていない場合はGoogleに自動フォールバック
         return null;
       }
     }
@@ -1076,19 +1065,17 @@
       return buffer;
     }
 
-    // --- 🎚 クリアな音質を保ったままピッチ・速度を変更して再生 ---
+    // --- 🎚 覇王の黄金比ピッチ再生 ---
     function playClearPitchedAudio(arrayBuffer) {
       const blob = new Blob([arrayBuffer], { type: "audio/wav" });
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
 
-      const pitchVal = parseFloat(document.getElementById("voice-pitch-slider").value) || 0.92;
-      const speedVal = parseFloat(document.getElementById("voice-speed-slider").value) || 1.00;
+      // 初期値: ピッチ0.88x, 速度0.96x
+      const pitchVal = parseFloat(document.getElementById("voice-pitch-slider").value) || 0.88;
+      const speedVal = parseFloat(document.getElementById("voice-speed-slider").value) || 0.96;
 
-      // 【重要】preservesPitch = false にすることで、
-      // フィルターを通さず音質をクリアに保ったままピッチ（声の高さ）を低く太く、あるいは高くできます！
       audio.preservesPitch = false;
-      // ピッチと速度を自然に掛け合わせ
       audio.playbackRate = pitchVal * speedVal;
 
       audio.play().catch(e => console.warn(e));
@@ -1099,14 +1086,13 @@
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "ja-JP";
-      const pitchVal = parseFloat(document.getElementById("voice-pitch-slider").value) || 0.92;
-      const speedVal = parseFloat(document.getElementById("voice-speed-slider").value) || 1.00;
-      utterance.pitch = pitchVal * 0.8;
+      const pitchVal = parseFloat(document.getElementById("voice-pitch-slider").value) || 0.88;
+      const speedVal = parseFloat(document.getElementById("voice-speed-slider").value) || 0.96;
+      utterance.pitch = pitchVal * 0.75;
       utterance.rate = speedVal;
       window.speechSynthesis.speak(utterance);
     }
 
-    // --- UI・演出 ---
     function setLoading(isLoading, statusText = "") {
       document.getElementById("send-btn").disabled = isLoading;
       document.getElementById("user-input").disabled = isLoading;
@@ -1188,5 +1174,4 @@
   </script>
 </body>
 </html>
-
 
